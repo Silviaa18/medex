@@ -5,6 +5,11 @@
     {% include 'patient_filter.html' %}
 </div>
 
+<div id="header">
+  <h1 style="color: red;">{{ header[0] }}</h1>
+</div>
+
+
 <script type="module" src="{{ url_for('static', filename='js/boxplot.js') }}"></script>
 <script src="{{ url_for('static', filename='js/plotly.min.js') }}"></script>
 

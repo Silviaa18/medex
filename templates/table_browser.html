@@ -7,6 +7,12 @@
 
 <script type="module" src="{{ url_for('static', filename='js/table_browser.js') }}"></script>
 
+<body>
+{% for text in texts %}
+    <h1> Here: {{ text.text1 }} </h1>
+ {% endfor %}
+</body>
+
 <div id="content">
     <div class="card">
         <div class="card-header" id="settings_header">

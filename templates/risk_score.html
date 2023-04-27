@@ -1,10 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Risk Factor</title>
+
+    <title></title>
+
 </head>
 <body>
-
+    {% for post in posts %}
+        <h1> {{ data.Disease }} </h1>
+        <p>The Patient {{ data.Patient }} born on {{ data.Birthdate }} has a risk of {{ data.Score }} to contract {{ data.Disease }}</p>
+    {% endfor %}
 </body>
 </html>

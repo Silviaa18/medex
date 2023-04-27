@@ -1,6 +1,6 @@
 import json
 import textwrap
-
+import pandas as pd
 import plotly
 
 from medex.services.filter import FilterService
@@ -9,11 +9,29 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 
+
+
 class BoxplotService:
     SVG_HEADER = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
                      <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
                      """
 
+    def get_boxplot_json(self, boxplot_data):
+        # read data from CSV file
+        df = pd.read_csv('import/dataset.csv')
+
+        # process the data
+        df = df[df['numerical_entity'].isin(boxplot_data.measurements)]
+        fig_table = self._get_boxplot_count_table(boxplot_data, df)
+        figure = self._get_boxplot_figure(boxplot_data, df)
+        figure = self._update_figure_layout(boxplot_data, figure)
+
+        # convert the plotly figure to JSON and return
+        merged_json = {
+            'image_json': figure.to_json(),
+            'table_json': fig_table.to_json()
+        }
+        return merged_json
     def __init__(self, database_session, filter_service: FilterService, histogram_service: HistogramService):
         self._database_session = database_session
         self._filter_service = filter_service
