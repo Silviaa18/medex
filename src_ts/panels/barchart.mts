@@ -6,9 +6,13 @@ import {configure_multiple_measurement_select, get_measurement_display_name} fro
 import {configure_entity_selection, is_valid_entity} from "../utility/entity_selection.mjs";
 import {configure_category_selection} from "../utility/categories_selection.mjs";
 import {switch_nav_item} from "../utility/nav.mjs";
+import {EntityType} from "../services/entity.mjs";
 
+interface BarchartData {
+    data: Object[]
+}
 
-class Barchart extends Plot {
+class Barchart extends Plot<BarchartData> {
     get_name() {
         return 'barchart';
     }
@@ -39,6 +43,10 @@ class Barchart extends Plot {
         }
     }
 
+    is_empty(data) {
+            return data.data.length === 0;
+    }
+
     get_search_parameter_string(measurements, entity, categories, plot_type) {
         return new URLSearchParams({
             barchart_data: JSON.stringify({
@@ -56,7 +64,7 @@ async function init() {
     await configure_multiple_measurement_select('measurement', 'measurement_div');
     await configure_entity_selection(
         'barchart_categorical_entities_select', [],
-        false, false
+        false, false, [EntityType.CATEGORICAL]
     );
     configure_category_selection(
         'subcategory_entities',

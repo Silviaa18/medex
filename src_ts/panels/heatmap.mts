@@ -3,8 +3,13 @@ import {get_selected_items} from "../utility/misc.mjs";
 import {configure_entity_selection} from "../utility/entity_selection.mjs";
 import {UserError} from "../utility/error.mjs";
 import {switch_nav_item} from "../utility/nav.mjs";
+import {EntityType} from "../services/entity.mjs";
 
-class Heatmap extends Plot {
+interface HeatmapData {
+    data: Object[]
+}
+
+class Heatmap extends Plot<HeatmapData> {
     get_name() {
         return 'heatmap';
     }
@@ -28,13 +33,17 @@ class Heatmap extends Plot {
             throw new UserError('Please select two or more numeric entities');
         }
     }
+
+    is_empty(data) {
+        return data.data.length === 0;
+    }
 }
 
 async function init() {
     switch_nav_item('heatmap');
     await configure_entity_selection(
         'heatmap_numerical_entities_select', [],
-        true, false
+        true, false, [EntityType.NUMERICAL]
     );
 }
 
