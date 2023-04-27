@@ -18,6 +18,7 @@ from medex.controller.barchart import barchart_controller
 from medex.controller.histogram import histogram_controller
 from medex.controller.boxplot import boxplot_controller
 from medex.controller.heatmap import heatmap_controller
+from medex.controller.risk_score import risk_controller
 from medex.controller.tutorial import tutorial_controller
 from medex.controller.root import root_controller
 
@@ -49,6 +50,8 @@ app.register_blueprint(histogram_controller, url_prefix='/histogram')
 app.register_blueprint(boxplot_controller, url_prefix='/boxplot')
 app.register_blueprint(heatmap_controller, url_prefix='/heatmap')
 app.register_blueprint(tutorial_controller, url_prefix='/tutorial')
+app.register_blueprint(risk_controller, url_prefix='/risk_score')
+
 
 
 def main():
