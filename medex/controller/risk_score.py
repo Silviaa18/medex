@@ -1,5 +1,6 @@
-from flask import Flask, render_template
-app = Flask(__name__)
+from flask import Blueprint, render_template
+
+risk_controller = Blueprint('risk_controller', __name__)
 
 
 data = [
@@ -11,10 +12,7 @@ data = [
     }
 ]
 
-@app.route('/risk_score')
+@risk_controller.route('/', methods=['GET'])
 def risk_score():
     return render_template('risk_score.html', data=data)
 
-
-if __name__ == '__main__':
-    app.run(debug=True)
