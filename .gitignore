@@ -16,3 +16,5 @@ dev_import.ini
 /build/
 /stack-compose.yml
 /coverage/
+lib
+bin
