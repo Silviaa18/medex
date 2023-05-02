@@ -24,6 +24,7 @@ alembic = "*"
 pydantic = "*"
 flask-sqlalchemy = "*"
 kaleido = "*"
+importlib-metadata = "*"
 
 [dev-packages]
 pylint = "*"
