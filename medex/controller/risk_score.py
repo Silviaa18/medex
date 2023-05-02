@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template
+from medex.services import data
 
 risk_controller = Blueprint('risk_controller', __name__)
 
