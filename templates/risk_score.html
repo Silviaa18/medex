@@ -1,22 +1,79 @@
 {% extends "layout.html" %}
 {% block body %}
 
-<div id="menu">
-    {% include 'patient_filter.html' %}
-</div>
+    <div id="menu">
+        {% include 'patient_filter.html' %}
+    </div>
+    <script type="module" src="{{ url_for('static', filename='js/risk_score.js') }}"></script>
 
-<html>
-<head>
+    <body>
+    {% for text in texts %}
+        <h1> Here: {{ text.text1 }} </h1>
+    {% endfor %}
+    </body>
+    <div id="content">
+        <div class="card">
+            <div class="card-header" id="settings_header">
+                <h5 class="mb-0">
+                    <button type="button" class="btn btn-link" data-toggle="collapse" data-target="#settings"
+                            aria-expanded="true" aria-controls="settings">
+                        Calculate Risk Score
+                    </button>
+                </h5>
+            </div>
+            <div id="settings" class="collapse show " aria-labelledby="c_settings_header">
+                <div class="card-body">
+                    <div id="error_div">
+                    </div>
 
-    <title></title>
+                    <div class="form-group">
+                        <label for="disease-select" multiple style="width: 100%">By selecting the disease of interest,
+                            you will get a risk score calculation.
+                            This calculation is performed on measured data and does only give a risk tendency, not
+                            substitute the consultation of your medical advisor</label>
+                        <select class="form-control" id="disease-select">
+                            <option value="" selected disabled>Select one disease</option>
+                            <option value="disease1">Diabetes</option>
+                            <option value="disease2">Coronary heart disease</option>
+                        </select>
+                    </div>
 
-</head>
-<body>
+
+                    <br>
+
+
+                    <button id="Result" name="Result" type="button" class="btn btn-outline-info"
+                            onclick="getPatients()"
+                    >
+                        See results
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-header" id="results_header">
+            <h5 class="mb-0">
+                <button type="button" class="btn btn-link" data-toggle="collapse" data-target="#results">
+                    See results
+                </button>
+            </h5>
+        </div>
+
+
+    </div>
+
+    <html>
+    <head>
+
+
+    </head>
+    <body>
     {% for post in posts %}
         <h1> {{ data.Disease }} </h1>
-        <p>The Patient {{ data.Patient }} born on {{ data.Birthdate }} has a risk of {{ data.Score }} to contract {{ data.Disease }}</p>
+        <p>The Patient {{ data.Patient }} born on {{ data.Birthdate }} has a risk of {{ data.Score }} to
+            contract {{ data.Disease }}</p>
     {% endfor %}
-</body>
-</html>
+    </body>
+    </html>
 
 {% endblock %}
