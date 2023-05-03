@@ -14,6 +14,8 @@ data = [
 ]
 
 
+
 @risk_controller.route('/', methods=['GET'])
 def risk_score():
     return render_template('risk_score.html', data=data)
+

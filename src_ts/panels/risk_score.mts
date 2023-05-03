@@ -8,13 +8,16 @@ import {configure_multiple_measurement_select} from "../services/measurement.mjs
 
 import Datatable from 'datatables.net-dt';
 import {ALL_ENTITIES} from "../services/entity.mjs";
+import '../../examples/diabetes_prediction_dataset.csv'
+
 
 async function init() {
     switch_nav_item('risk_score');
+
+
 }
 
 function getResults(): void {
-    // Assuming you have a CSV file named "patients.csv" in the same directory
     const csvFilePath = 'diabetes_prediction_dataset.csv';
 
     // Fetch the CSV file
@@ -83,7 +86,5 @@ function getResults(): void {
         .catch(error => {
             console.error('Error fetching CSV file:', error);
         });
+    document.addEventListener("DOMContentLoaded", init);
 }
-
-
-document.addEventListener("DOMContentLoaded", init);
