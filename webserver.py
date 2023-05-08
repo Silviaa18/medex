@@ -27,7 +27,7 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.urandom(24)
 app.config["SQLALCHEMY_DATABASE_URI"] = get_database_url()
-app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
+app.config['SESSION_COOKIE_SAME SITE'] = 'Strict'
 db = SQLAlchemy()
 db.init_app(app)
 
@@ -51,7 +51,6 @@ app.register_blueprint(boxplot_controller, url_prefix='/boxplot')
 app.register_blueprint(heatmap_controller, url_prefix='/heatmap')
 app.register_blueprint(tutorial_controller, url_prefix='/tutorial')
 app.register_blueprint(risk_controller, url_prefix='/risk_score')
-
 
 
 def main():
