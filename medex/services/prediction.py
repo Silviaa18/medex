@@ -8,7 +8,7 @@ class PredictionService:
         self._database_session = database_session
         self._filter_service = filter_service
 
-    def get_risk_score_for_case_id(self, case_id) -> dict:git
+    def get_risk_score_for_case_id(self, case_id) -> dict:
 
         # Execute the query and retrieve the data as a dictionary
         qc = (
