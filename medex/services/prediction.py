@@ -1,7 +1,7 @@
 from sqlalchemy import select, func, and_, or_
 from medex.services.filter import FilterService
 from medex.database_schema import TableNumerical, Patient, TableCategorical, TableDate
-
+from medex.services.better_risk_score_model import test_random_patient, get_risk_score, save_model, load_model, train_risk_score_model
 
 class PredictionService:
     def __init__(self, database_session, filter_service: FilterService):
@@ -23,8 +23,8 @@ class PredictionService:
             .filter(or_(TableNumerical.key == "Delta0", TableNumerical.key == "Delta2"))
             .all()
         )
-
+        train_risk_score_model()
         # Convert the query results into a dictionary
-        result = {row.key: row.value for row in (qc + qn)}
+        result = {row.key: row.value for row in (qc + qn)}, test_random_patient()
 
         return result

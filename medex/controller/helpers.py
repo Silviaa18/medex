@@ -92,6 +92,7 @@ def get_basic_stats_service():
     filter_service = get_filter_service()
     return BasicStatisticsService(db_session, filter_service)
 
+
 def get_prediction_service():
     db_session = get_db_session()
     filter_service = get_filter_service()
