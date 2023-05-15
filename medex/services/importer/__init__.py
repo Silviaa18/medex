@@ -1,6 +1,8 @@
 from os.path import exists
 from pathlib import Path
+from typing import List, Dict
 
+from medex.dto.entity import EntityType
 from medex.services.database import get_db_session, get_db_engine
 from medex.services.entity import EntityService
 from medex.services.config import Config, get_config
@@ -8,6 +10,7 @@ from medex.services.importer.database_setup import DatabaseSetup
 from medex.services.importer.dataset import DatasetImporter
 from medex.services.importer.entitity import EntityImporter
 from medex.services.importer.header import HeaderImporter
+from medex.baseModule import CalculatorPlugin
 
 
 class Importer:
@@ -50,6 +53,25 @@ class Importer:
             raise Exception(f"The file '{config.entities_path}' is missing - aborting.")
         if self._dataset_importer is None:
             raise Exception(f"The file '{config.dataset_path}' is missing - aborting.")
+
+
+class MyPlugin(CalculatorPlugin):
+    @classmethod
+    def get_name(cls) -> str:
+        return "My Plugin"
+
+    @classmethod
+    def required_parameters(cls) -> List[str]:
+        return ["num1", "num2"]
+
+    @classmethod
+    def get_entity_type(cls) -> EntityType:
+        return EntityType.NUMERICAL
+
+    def calculate(self, params: Dict[str, any]) -> any:
+        num1 = params["num1"]
+        num2 = params["num2"]
+        return num1 + num2
 
 
 def get_importer():
