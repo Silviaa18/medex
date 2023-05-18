@@ -59,8 +59,8 @@ def load_model(target_disease: str = "diabetes", encoder=True):
 def train_risk_score_model(target_disease: str = "diabetes", categorical_columns: list = ['gender', 'smoking_history'],
                            drop_columns: list = []):
     # Load data from CSV file
-    #data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
-    data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
+    data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
+    #data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
 
     # Determine categories of categorical columns
     if target_disease == "diabetes":
@@ -137,3 +137,7 @@ def test_random_patient(disease="diabetes"):
         patient = {"sbp": 120, "tobacco": 12, "ldl": 5, "obesity": 32, "alcohol": 97.2, "age": 55}
     categorical_columns = get_entities_for_disease(disease)
     return get_risk_score(patient, disease)
+
+
+train_risk_score_model()
+test_random_patient()
