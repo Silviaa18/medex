@@ -1,3 +1,4 @@
+import pytest
 from medex.services.importer import AdditionPlugin
 
 data = {

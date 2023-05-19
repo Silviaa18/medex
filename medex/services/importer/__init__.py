@@ -10,7 +10,7 @@ from medex.services.importer.database_setup import DatabaseSetup
 from medex.services.importer.dataset import DatasetImporter
 from medex.services.importer.entitity import EntityImporter
 from medex.services.importer.header import HeaderImporter
-from medex.baseModule import CalculatorPlugin
+from medex.calc_plugin import CalculatorPlugin
 
 
 class Importer:
