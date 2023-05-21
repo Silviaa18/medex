@@ -116,7 +116,6 @@ def test_train_risk_score_model_diabetes():
         'smoking_history': ['Yes', 'No', 'No'],
         'diabetes': [1, 0, 1]
     })
-    test_data.to_csv('examples/diabetes_prediction_dataset.csv', index=False)
 
     # Call the function being tested
     train_risk_score_model(target_disease, categorical_columns, drop_columns)
