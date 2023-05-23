@@ -1,4 +1,3 @@
-
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
@@ -24,7 +23,7 @@ def get_entities_for_disease(disease="diabetes"):
     return cat_entities, num_entities
 
 
-def convert_to_features(df, enc, categorical_columns: list =['gender', 'smoking_history']):
+def convert_to_features(df, enc, categorical_columns: list = ['gender', 'smoking_history']):
     assert isinstance(categorical_columns, list)
 
     onehot = enc.transform(df[categorical_columns])
@@ -59,8 +58,8 @@ def load_model(target_disease: str = "diabetes", encoder=True):
 def train_risk_score_model(target_disease: str = "diabetes", categorical_columns: list = ['gender', 'smoking_history'],
                            drop_columns: list = []):
     # Load data from CSV file
-    data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
-    #data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
+    # data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
+    data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
 
     # Determine categories of categorical columns
     if target_disease == "diabetes":
@@ -72,10 +71,9 @@ def train_risk_score_model(target_disease: str = "diabetes", categorical_columns
     scaler = StandardScaler()
     model = LogisticRegression()
     if target_disease == "diabetes":
-    # One-hot encode categorical columns
+        # One-hot encode categorical columns
         encoder.fit(data[categorical_columns])
         data = convert_to_features(data, encoder, categorical_columns)
-
 
     # Split data into features (X) and target (y)
     y = data[target_disease]
