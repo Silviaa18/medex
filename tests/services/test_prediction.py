@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-import self
 from tests.fixtures.db_session import db_session
 
 from medex.database_schema import TableCategorical
@@ -26,8 +25,8 @@ class TestPredictionService:
         assert cat_entities == []
         assert num_entities == ["Jitter_rel"]
 
-    def test_get_risk_score_for_case_id(self):
-        case_id = 1
+    def test_get_risk_score_for_name_id(self):
+        name_id = "5f2b9323c39ee3c861a7b382d205c3d3"
         disease = "diabetes"
         cat_entities = ["Gender", "Diabetes"]
         num_entities = ["Delta0", "Delta2"]
@@ -43,7 +42,7 @@ class TestPredictionService:
         )
 
         # Call the method being tested
-        result = self.prediction_service.get_risk_score_for_case_id(case_id, disease)
+        result = self.prediction_service.get_risk_score_for_name_id(name_id, disease)
 
         # Perform assertions
         assert result == expected_result

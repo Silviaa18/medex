@@ -6,14 +6,16 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
 from medex.services.better_risk_score_model import get_entities_for_disease, load_model, train_risk_score_model, \
-    get_risk_score
+    get_risk_score, convert_to_features, save_model
 
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 import joblib
-from medex.services.better_risk_score_model import convert_to_features, save_model
 
 import os
+from pathlib import Path
+from os import getcwd
+
 
 
 class MyTestCase(unittest.TestCase):
@@ -29,7 +31,7 @@ class MyTestCase(unittest.TestCase):
         assert num_entities == ["Jitter_rel", "Jitter_abs"]
 
 
-def test_convert_to_features():
+def test_convert_to_features(categorical_columns=["gender", "smoking_history"]):
     # Create a sample DataFrame for testing
     df = pd.DataFrame({
         'gender': ['Male', 'Female', 'Male'],
@@ -39,19 +41,27 @@ def test_convert_to_features():
     })
 
     # Create a sample OneHotEncoder
-    enc = OneHotEncoder(sparse=False)
+
+    category_names = {}
+    for col in categorical_columns:
+        category_names[col] = df[col].unique()
+    enc = OneHotEncoder(categories=[category_names[col] for col in categorical_columns])
+
+    #enc = OneHotEncoder(sparse=False)
     enc.fit(df[['gender', 'smoking_history']])
 
     # Call the function being tested
     result = convert_to_features(df, enc)
+    print(result)
 
     # Perform assertions on the result
     assert isinstance(result, pd.DataFrame)
-    assert set(result.columns) == {'x0_Male', 'x0_Female', 'x1_Non-smoker', 'x1_Ex-smoker', 'x1_Current smoker', 'age',
+    assert set(result.columns) == {'gender_Male', 'gender_Female', 'smoking_history_Non-smoker',
+                                   'smoking_history_Ex-smoker', 'smoking_history_Current smoker', 'age',
                                    'bmi'}
 
 
-def test_save_model(tmp_path):
+def test_save_model(folder=""):
     # Create a sample model and encoder
     model = 'Sample Model'
     encoder = 'Sample Encoder'
@@ -62,17 +72,17 @@ def test_save_model(tmp_path):
     save_model(model, encoder, scaler, disease)
 
     # Check if the model and files are saved correctly
-    assert (tmp_path / 'diabetes_prediction_model.pkl').exists()
-    assert (tmp_path / 'diabetesencoder.pkl').exists()
-    assert (tmp_path / 'diabetesscaler.pkl').exists()
+    assert Path(folder + 'diabetes_prediction_model.pkl').exists()
+    assert Path(folder + 'diabetesencoder.pkl').exists()
+    assert Path(folder + 'diabetesscaler.pkl').exists()
 
 
-def test_load_model(tmp_path):
+def test_load_model(folder=""):
     # Create sample model, encoder, and scaler files
     target_disease = "diabetes"
-    model_path = tmp_path / f'{target_disease}_prediction_model.pkl'
-    scaler_path = tmp_path / f'{target_disease}scaler.pkl'
-    encoder_path = tmp_path / f'{target_disease}encoder.pkl'
+    model_path = folder + f'{target_disease}_prediction_model.pkl'
+    scaler_path = folder + f'{target_disease}scaler.pkl'
+    encoder_path = folder + f'{target_disease}encoder.pkl'
     joblib.dump('Sample Model', model_path)
     joblib.dump('Sample Scaler', scaler_path)
     joblib.dump('Sample Encoder', encoder_path)
@@ -106,16 +116,11 @@ def test_train_risk_score_model_diabetes():
         'smoking_history': ['Yes', 'No', 'No'],
         'diabetes': [1, 0, 1]
     })
-    test_data.to_csv('examples/diabetes_prediction_dataset.csv', index=False)
 
     # Call the function being tested
     train_risk_score_model(target_disease, categorical_columns, drop_columns)
 
     # Add your assertions here based on the expected behavior of the function
-
-    # Cleanup the test CSV file
-    import os
-    os.remove('examples/diabetes_prediction_dataset.csv')
 
 
 def test_train_risk_score_model_chd():
@@ -124,6 +129,7 @@ def test_train_risk_score_model_chd():
     drop_columns = []
 
     # Load data from CSV file
+    os.chdir('/Users/silvia/PycharmProjects/medex_website/')
     data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
 
     # Determine categories of categorical columns
@@ -209,7 +215,7 @@ def test_get_risk_score(expected_has_disease=None, expected_risk_score=None):
 
     # Mock load_model function
     load_model_mock = MagicMock(return_value=(model, encoder, scaler))
-    with patch('medex.load_model', load_model_mock):
+    with patch('medex.services.better_risk_score_model.load_model', load_model_mock):
         # Call the function being tested
         result = get_risk_score(df, disease)
 
