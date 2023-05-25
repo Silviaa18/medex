@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock
+import unittest
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -26,34 +27,31 @@ class TestPredictionService:
         assert cat_entities == []
         assert num_entities == ["Jitter_rel"]
 
-    # not passing
-    def test_get_risk_score_for_name_id(self):
-        # Create a mock instance of the PredictionService class
-        prediction_service_mock = MagicMock()
-        # Replace 'PredictionService' with the actual class name in the code being tested
+        @patch('medex.PredictionService')
+        @patch('medex.train_risk_score_model')
+        @patch('medex.test_random_patient')
+        def test_get_risk_score_for_name_id(self, mock_test_random_patient, mock_train_risk_score_model,
+                                            mock_prediction_service):
+            # Set up mock objects and data
+            mock_query = mock_prediction_service.return_value._database_session.query.return_value
+            mock_query.all.return_value = [('name1', 'measurement1', 'value1'), ('name2', 'measurement2', 'value2')]
+            mock_test_random_patient.return_value = {'risk_score': 0.5}
 
-        # Mock the return values and behavior of the methods called within get_risk_score_for_name_id
-        prediction_service_mock.get_entities_for_disease.return_value = (
-            ["Category1", "Category2"], ["Numeric1", "Numeric2"])
-        prediction_service_mock._database_session.query.return_value = MagicMock(
-            all=MagicMock(return_value=[
-                (1, "Measurement1", 5),
-                (1, "Measurement2", 10)
-            ])
-        )
-        prediction_service_mock.test_random_patient.return_value = pd.DataFrame([
-            {"RiskScore": 0.75}
-        ])
+            # Create an instance of YourClass
+            medex = mock_prediction_service()
 
-        # Call the method being tested with the mock instance
-        result = prediction_service_mock.get_risk_score_for_name_id(1, "diabetes")
+            # Call the method under test
+            result = medex.get_risk_score_for_name_id('123')
 
-        # Perform assertions on the result
-        self.assertIsInstance(result, pd.DataFrame)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result.iloc[0]["RiskScore"], 0.75)
+            # Assertions
+            self.assertEqual(result,
+                             pd.DataFrame([('name1', 'measurement1', 'value1'), ('name2', 'measurement2', 'value2')]))
+            mock_prediction_service.get_entities_for_disease.assert_called_once_with('diabetes')
+            mock_query.join.assert_called()
+            mock_query.filter.assert_called()
+            mock_train_risk_score_model.assert_called_once_with(target_disease='diabetes', drop_columns=[])
+            mock_test_random_patient.assert_called_once_with('diabetes')
 
-        # Assert that the methods were called with the expected arguments
-        prediction_service_mock.get_entities_for_disease.assert_called_once_with("diabetes")
-        prediction_service_mock._database_session.query.assert_called_once()
-        prediction_service_mock.test_random_patient.assert_called_once_with("diabetes")
+
+if __name__ == '__main__':
+    unittest.main()
