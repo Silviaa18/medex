@@ -120,7 +120,6 @@ def test_train_risk_score_model_diabetes():
     # Call the function being tested
     train_risk_score_model(target_disease, categorical_columns, drop_columns)
 
-    # Add your assertions here based on the expected behavior of the function
 
 
 def test_train_risk_score_model_chd():
@@ -129,7 +128,7 @@ def test_train_risk_score_model_chd():
     drop_columns = []
 
     # Load data from CSV file
-    os.chdir('/Users/silvia/PycharmProjects/medex_website/')
+    os.chdir('/Users/aleksandrakirpenko/PycharmProjects/medex/')
     data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
 
     # Determine categories of categorical columns
@@ -196,6 +195,7 @@ def test_train_risk_score_model_chd():
         os.remove(f'{target_disease}encoder.pkl')
 
 
+#not working
 def test_get_risk_score(expected_has_disease=None, expected_risk_score=None):
     # Mock data
     df = pd.DataFrame({
@@ -212,6 +212,8 @@ def test_get_risk_score(expected_has_disease=None, expected_risk_score=None):
     model = MagicMock()
     encoder = MagicMock()
     scaler = MagicMock()
+
+
 
     # Mock load_model function
     load_model_mock = MagicMock(return_value=(model, encoder, scaler))
