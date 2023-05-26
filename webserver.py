@@ -21,6 +21,7 @@ from medex.controller.heatmap import heatmap_controller
 from medex.controller.risk_score import risk_controller
 from medex.controller.tutorial import tutorial_controller
 from medex.controller.root import root_controller
+from medex.controller.plugin import plugin_controller
 
 # create the application object
 app = Flask(__name__)
