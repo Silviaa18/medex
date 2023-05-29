@@ -121,14 +121,15 @@ def test_train_risk_score_model_diabetes():
     train_risk_score_model(target_disease, categorical_columns, drop_columns)
 
 
-
 def test_train_risk_score_model_chd():
     target_disease = "diabetes"
     categorical_columns = ['gender', 'smoking_history']
     drop_columns = []
-
-    # Load data from CSV file
-    os.chdir('/Users/aleksandrakirpenko/PycharmProjects/medex/')
+    current_directory = os.getcwd()
+    if current_directory.endswith("tests"):
+        parent_directory = os.path.dirname(current_directory)
+        os.chdir(parent_directory)
+        new_wd = os.getcwd()
     data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
 
     # Determine categories of categorical columns
