@@ -19,11 +19,13 @@ class Importer:
             config: Config,
             entity_importer: EntityImporter = None,
             dataset_importer: DatasetImporter = None,
+            plugin_importer: PluginImporter = None,
     ):
         self._setup = setup
         self._header_importer = header_importer
         self._entity_importer = entity_importer
         self._dataset_importer = dataset_importer
+        self._plugin_importer = plugin_importer
         self._config = config
 
     def setup_database(self):
@@ -41,6 +43,8 @@ class Importer:
             self._dataset_importer.populate_patient_table()
             print('Optimizing tables ...')
             self._dataset_importer.optimize_tables()
+            print('Importing plugins ...')
+            self._plugin_importer.import_plugins()
             print(f"Touching {self._config.import_marker_path}")
             Path(self._config.import_marker_path).touch()
         print('Database setup completed.')

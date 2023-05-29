@@ -64,9 +64,9 @@ class PredictionService:
         query = query.filter(TableCategorical.name_id == name_id)
 
         if disease == "CHD":
-            drop_columns = ["typea", "famhist", "adiposity"]
+            drop_columns = ["typea", "famhist", "adiposity", "age"]
         else:
-            drop_columns = []
+            drop_columns = ["age", 'smoking_history']
 
         train_risk_score_model(target_disease=disease, drop_columns=drop_columns)
         result = pd.DataFrame(query.all()), test_random_patient(disease)
