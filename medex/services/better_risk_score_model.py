@@ -1,3 +1,4 @@
+
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
@@ -16,14 +17,14 @@ def get_entities_for_disease(disease="diabetes"):
 
     if disease == "CHD":
         # actual database entries
-        # cat_entities = ["alcohol use"]
+        # cat_entities = ["alcohol"]
         # num_entities = ["sbp", "tobacco", "ldl", "age", "obesity"]
         cat_entities = ["Gender", "Diabetes"]
         num_entities = ["Jitter_rel", "Jitter_abs"]
     return cat_entities, num_entities
 
 
-def convert_to_features(df, enc, categorical_columns: list = ['gender', 'smoking_history']):
+def convert_to_features(df, enc, categorical_columns: list =['Sex', 'Tobacco smoking']):
     assert isinstance(categorical_columns, list)
 
     onehot = enc.transform(df[categorical_columns])
@@ -55,11 +56,55 @@ def load_model(target_disease: str = "diabetes", encoder=True):
         return model, None, scaler
 
 
-def train_risk_score_model(target_disease: str = "diabetes", categorical_columns: list = ['gender', 'smoking_history'],
-                           drop_columns: list = []):
-    # Load data from CSV file
-    # data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
+def get_variable_map(target_disease: str = "diabetes"):
+    smoking_mapping = {
+        "not current": "Ex-smoker",
+        "former": "Ex-smoker",
+        "ever": "Occasionally",
+        "current": "Smokes on most or all days",
+        "No Info": "Prefer not to answer",
+        "never": "Never smoked"
+    }
+    if target_disease == "diabetes":
+        variable_map = {
+            "HbA1c_level": "Glycated haemoglobin (HbA1c)",
+            "bmi": "Body mass index (BMI)",
+            "blood_glucose_level": "Glucose",
+            #"heart_disease": "Diagnoses - ICD10)",
+            "gender": "Sex"
+        }
+    else:
+        variable_map = {
+            "sbp": "systolic blood pressure automated reading",
+            # yearly tobacco use in kg to cigarettes per day
+            #"tobacco": "Amount of tobacco currently smoked",
+            # yearly alcohol intake(guessing grams/day)? to never, monthly or less, 2 to 4 times a week
+            #"alcohol": "Frequency of drinking alcohol",
+            "obesity": "Body mass index (BMI)",
+            "ldl": "LDL direct",
+        }
+
+    return variable_map, smoking_mapping
+
+
+def train_risk_score_model(target_disease: str = "diabetes", categorical_columns: list = ['Sex', 'Tobacco smoking'],
+                           drop_columns: list = ["age", "smoking_history"]):
+
+    #data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
     data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
+    variable_mapping = get_variable_map(target_disease)[0]
+    smoking_mapping = get_variable_map(target_disease)[1]
+    # year of birth was determined in 2008
+    data['Year of birth'] = 2008 - data['age']
+
+    # not current, former, ever,  current, No Info, never to Ex-smoker 2x, Occasionally, Smokes on most or all days,
+    # Prefer not to answer, Never smoked
+    if target_disease == "diabetes":
+        data["Tobacco smoking"] = data["smoking_history"].map(smoking_mapping)
+
+    # Rename variables based on the mapping dictionary
+    data = data.rename(columns=variable_mapping)
+
 
     # Determine categories of categorical columns
     if target_disease == "diabetes":
@@ -75,6 +120,7 @@ def train_risk_score_model(target_disease: str = "diabetes", categorical_columns
         encoder.fit(data[categorical_columns])
         data = convert_to_features(data, encoder, categorical_columns)
 
+
     # Split data into features (X) and target (y)
     y = data[target_disease]
     x = data.drop([target_disease] + drop_columns, axis=1)
@@ -89,7 +135,7 @@ def train_risk_score_model(target_disease: str = "diabetes", categorical_columns
     coef_dict = {}
     for coef, feat in zip(model.coef_[0], x.columns):
         coef_dict[feat] = coef
-
+    print(coef_dict)
     # Evaluate model accuracy
     y_pred = model.predict(x_scaled)
     accuracy = accuracy_score(y, y_pred)
@@ -127,16 +173,16 @@ def get_risk_score(df, disease="diabetes"):
 def test_random_patient(disease="diabetes"):
     # Calculate risk score for a new patient (with the first model)
     if disease == "diabetes":
-        patient = {'gender': 'Male', 'age': 44.0, 'hypertension': 1, 'heart_disease': 1,
-                   'smoking_history': 'current', 'bmi': 30, 'HbA1c_level': 6.5, 'blood_glucose_level': 200}
-        # assert get_risk_score(patient)[0]
-        # assert get_risk_score(patient)[1] == 0.7768480562023963
+        patient = {'Sex': 'Male', 'hypertension': 1, 'heart_disease': 1,
+                   'Body mass index (BMI)': 30, 'Glycated haemoglobin (HbA1c)': 6.5,
+                   'Glucose': 200, 'Year of birth': 1964, 'Tobacco smoking': 'Ex-smoker'}
+        #assert get_risk_score(patient)[1] == 0.75190808
     elif disease == "CHD":
-        patient = {"sbp": 120, "tobacco": 12, "ldl": 5, "obesity": 32, "alcohol": 97.2, "age": 55}
-    categorical_columns = get_entities_for_disease(disease)
+        patient = {"systolic blood pressure automated reading": 120, "tobacco": 12, "LDL direct": 5,
+                   "Body mass index (BMI)": 32, "alcohol": 97.2, "Year of birth": 1953}
+        #risk score should be 0.58063699
     return get_risk_score(patient, disease)
 
 
-
-# train_risk_score_model()
-# test_random_patient()
+#train_risk_score_model()
+#test_random_patient()
