@@ -1,3 +1,5 @@
+from distutils.util import execute
+
 import pandas as pd
 import self
 from sqlalchemy import select, func, and_, or_
@@ -6,7 +8,8 @@ from medex.database_schema import TableNumerical, Patient, TableCategorical, Tab
 from medex.services.better_risk_score_model import test_random_patient, get_risk_score, save_model, load_model, \
     train_risk_score_model
 from medex.services.database import get_db_session, get_db_engine
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, session
+from sqlalchemy.orm import sessionmaker
 
 
 class PredictionService:
@@ -74,6 +77,21 @@ class PredictionService:
         result = pd.DataFrame(query.all()), test_random_patient(disease)
 
         return result
+
+
+def add_risk_row(self, name_id) -> dict:
+    query = self._database_session.query(TableCategorical.name_id).distinct()
+
+    cat_name_ids = [row[0] for row in query.all()]
+
+    print(cat_name_ids)
+
+    for name_id in cat_name_ids:
+        risk_row = TableCategorical(name_id=cat_name_ids, entity='risk', value='true')
+        query.add(risk_row)
+        query.commit()
+
+
 
 
 
