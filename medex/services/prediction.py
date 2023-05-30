@@ -1,15 +1,11 @@
-from distutils.util import execute
-
 import pandas as pd
-import self
 from sqlalchemy import select, func, and_, or_
 from medex.services.filter import FilterService
-from medex.database_schema import TableNumerical, Patient, TableCategorical, TableDate
+from medex.database_schema import TableNumerical, Patient, TableCategorical, TableDate, NameType
 from medex.services.better_risk_score_model import test_random_patient, get_risk_score, save_model, load_model, \
     train_risk_score_model
 from medex.services.database import get_db_session, get_db_engine
 from sqlalchemy.orm import aliased, session
-from sqlalchemy.orm import sessionmaker
 
 
 class PredictionService:
@@ -78,20 +74,17 @@ class PredictionService:
 
         return result
 
+    def add_risk_row(self):
 
-def add_risk_row(self, name_id) -> dict:
-    query = self._database_session.query(TableCategorical.name_id).distinct()
-
-    cat_name_ids = [row[0] for row in query.all()]
-
-    print(cat_name_ids)
-
-    for name_id in cat_name_ids:
-        risk_row = TableCategorical(name_id=cat_name_ids, entity='risk', value='true')
-        query.add(risk_row)
-        query.commit()
-
-
-
-
+        query = self._database_session.query(TableCategorical.name_id).distinct()
+        cat_name_ids = [row[0] for row in query.all()]
+        new_entity = NameType(key='risk', synonym='risk', description='', unit='', show='', type="String")
+        self._database_session.merge(new_entity)
+        for name_id in cat_name_ids:
+            # value = str(self.get_risk_score_for_name_id(name_id)[1][0])
+            value = 'True'
+            risk_row = TableCategorical(name_id=name_id, key='risk', value=value, case_id=name_id, measurement='1',
+                                        date='2011-04-16', time='17:50:41')
+            self._database_session.merge(risk_row)
+        self._database_session.commit()
 

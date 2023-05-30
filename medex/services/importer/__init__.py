@@ -44,7 +44,7 @@ class Importer:
             print('Optimizing tables ...')
             self._dataset_importer.optimize_tables()
             print('Importing plugins ...')
-            self._plugin_importer.import_plugins()
+            #self._plugin_importer.import_plugins()
             print(f"Touching {self._config.import_marker_path}")
             Path(self._config.import_marker_path).touch()
         print('Database setup completed.')
