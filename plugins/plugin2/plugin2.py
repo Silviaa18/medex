@@ -5,10 +5,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 import joblib
 
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import and_
 from medex.services.filter import FilterService
-from medex.database_schema import TableNumerical, Patient, TableCategorical, TableDate
-from medex.services.database import get_db_session, get_db_engine
+from medex.database_schema import TableNumerical,TableCategorical, NameType
 from sqlalchemy.orm import aliased
 
 
@@ -172,6 +171,20 @@ def get_risk_score(df, disease="diabetes"):
     return has_disease, risk_score[:, 1]
 
 
+def random_patient(disease="diabetes"):
+    # Calculate risk score for a new patient (with the first model)
+    if disease == "diabetes":
+        patient = {'Sex': 'Male', 'hypertension': 1, 'heart_disease': 1,
+                   'Body mass index (BMI)': 30, 'Glycated haemoglobin (HbA1c)': 6.5,
+                   'Glucose': 200, 'Year of birth': 1964, 'Tobacco smoking': 'Ex-smoker'}
+        #assert get_risk_score(patient)[1] == 0.75190808
+    elif disease == "CHD":
+        patient = {"systolic blood pressure automated reading": 120, "tobacco": 12, "LDL direct": 5,
+                   "Body mass index (BMI)": 32, "alcohol": 97.2, "Year of birth": 1953}
+        #risk score should be 0.58063699
+    return get_risk_score(patient, disease)
+
+
 class PredictionService:
     def __init__(self, database_session, filter_service: FilterService):
         self._database_session = database_session
@@ -234,6 +247,26 @@ class PredictionService:
             drop_columns = ["age", 'smoking_history']
 
         train_risk_score_model(target_disease=disease, drop_columns=drop_columns)
-        result = pd.DataFrame(query.all()), test_random_patient(disease)
+        result = pd.DataFrame(query.all()), random_patient(disease)
 
         return result
+
+    def add_prediction_row(self):
+
+        query = self._database_session.query(TableCategorical.name_id).distinct()
+        cat_name_ids = [row[0] for row in query.all()]
+        new_entity = NameType(key='diabetes_prediction', synonym='diabetes_prediction', description='', unit='',
+                              show='', type="String")
+        self._database_session.merge(new_entity)
+        for name_id in cat_name_ids:
+            existing_row = self._database_session.query(TableCategorical).filter_by(name_id=name_id,
+                                                                                    key='diabetes_prediction').first()
+            if existing_row is None:
+                # value = str(self.get_risk_score_for_name_id(name_id)[1][0])
+                value = 'True'
+                prediction_row = TableCategorical(name_id=name_id, key='diabetes_prediction', value=value,
+                                                  case_id=name_id, measurement='1', date='2011-04-16', time='17:50:41')
+                self._database_session.merge(prediction_row)
+        self._database_session.commit()
+        print("Row successfully added!")
+

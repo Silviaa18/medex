@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template
 from medex.services import data
-from medex.controller.helpers import get_prediction_service
+from medex.controller.helpers import get_filter_service
+from medex.services.database import get_db_session
+from medex.services.filter import FilterService
 from medex.services.importer import _get_plugin_importer
 
 risk_controller = Blueprint('risk_controller', __name__)
@@ -19,13 +21,24 @@ data = [
 @risk_controller.route('/', methods=['GET'])
 def risk_score():
     print("Hello")
-    print(get_prediction_service().get_risk_score_for_name_id('5f2b9323c39ee3c861a7b382d205c3d3'))
-    print(get_prediction_service().get_risk_score_for_name_id('5890595e16cbebb8866e1842e4bd6ec7', disease="CHD"))
-    print(get_prediction_service().add_risk_row())
     print(_get_plugin_importer())
     plugin_imp = _get_plugin_importer()
     plugin_list = plugin_imp.import_plugins()
     print(plugin_list)
+
+    db_session = get_db_session()
+    filter_service = get_filter_service()
+
+    for plugin in plugin_list:
+        if hasattr(plugin, 'get_variable_map') and \
+                callable(getattr(plugin, 'get_variable_map')):
+            print(plugin.PredictionService(db_session, filter_service).get_risk_score_for_name_id(
+                name_id='5f2b9323c39ee3c861a7b382d205c3d3'))
+            print(plugin.PredictionService(db_session, filter_service).get_risk_score_for_name_id(
+                name_id='5890595e16cbebb8866e1842e4bd6ec7', disease="CHD"))
+            print(plugin.PredictionService(db_session, filter_service).add_prediction_row())
+        else:
+            print(f"Plugin {plugin.__name__} does not have the 'get_variable_map' function.")
     for plugin in plugin_list:
         if hasattr(plugin, 'adding') and callable(getattr(plugin, 'adding')):
             print(plugin.adding(2, 3))

@@ -16,7 +16,7 @@ from medex.services.scatter_plot import ScatterPlotService
 from medex.services.session import SessionService
 from medex.services.filter import FilterService
 from medex.services.entity import EntityService
-from medex.services.prediction import PredictionService
+
 
 def get_session_id():
     if 'session_id' not in session:
@@ -91,12 +91,6 @@ def get_basic_stats_service():
     db_session = get_db_session()
     filter_service = get_filter_service()
     return BasicStatisticsService(db_session, filter_service)
-
-
-def get_prediction_service():
-    db_session = get_db_session()
-    filter_service = get_filter_service()
-    return PredictionService(db_session, filter_service)
 
 
 @cache
