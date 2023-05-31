@@ -5,8 +5,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
-from medex.services.better_risk_score_model import get_entities_for_disease, load_model, train_risk_score_model, \
-    get_risk_score, convert_to_features, save_model
+from plugins import plugin2
 
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -16,6 +15,8 @@ import os
 from pathlib import Path
 from os import getcwd
 
+from plugins.plugin2.plugin2 import convert_to_features, save_model, load_model, train_risk_score_model, get_risk_score, \
+    get_entities_for_disease
 
 
 class MyTestCase(unittest.TestCase):
@@ -47,7 +48,7 @@ def test_convert_to_features(categorical_columns=["gender", "smoking_history"]):
         category_names[col] = df[col].unique()
     enc = OneHotEncoder(categories=[category_names[col] for col in categorical_columns])
 
-    #enc = OneHotEncoder(sparse=False)
+    # enc = OneHotEncoder(sparse=False)
     enc.fit(df[['gender', 'smoking_history']])
 
     # Call the function being tested
@@ -196,7 +197,7 @@ def test_train_risk_score_model_chd():
         os.remove(f'{target_disease}encoder.pkl')
 
 
-#not working
+# not working
 def test_get_risk_score(expected_has_disease=None, expected_risk_score=None):
     # Mock data
     df = pd.DataFrame({
@@ -213,8 +214,6 @@ def test_get_risk_score(expected_has_disease=None, expected_risk_score=None):
     model = MagicMock()
     encoder = MagicMock()
     scaler = MagicMock()
-
-
 
     # Mock load_model function
     load_model_mock = MagicMock(return_value=(model, encoder, scaler))
