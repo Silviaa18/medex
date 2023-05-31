@@ -5,6 +5,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 import joblib
 
+from sqlalchemy import select, func, and_, or_
+from medex.services.filter import FilterService
+from medex.database_schema import TableNumerical, Patient, TableCategorical, TableDate
+from medex.services.database import get_db_session, get_db_engine
+from sqlalchemy.orm import aliased
+
 
 def get_entities_for_disease(disease="diabetes"):
     if disease == "diabetes":
@@ -23,7 +29,7 @@ def get_entities_for_disease(disease="diabetes"):
     return cat_entities, num_entities
 
 
-def convert_to_features(df, enc, categorical_columns: list =['Sex', 'Tobacco smoking']):
+def convert_to_features(df, enc, categorical_columns: list = ['Sex', 'Tobacco smoking']):
     assert isinstance(categorical_columns, list)
 
     onehot = enc.transform(df[categorical_columns])
@@ -69,16 +75,16 @@ def get_variable_map(target_disease: str = "diabetes"):
             "HbA1c_level": "Glycated haemoglobin (HbA1c)",
             "bmi": "Body mass index (BMI)",
             "blood_glucose_level": "Glucose",
-            #"heart_disease": "Diagnoses - ICD10)",
+            # "heart_disease": "Diagnoses - ICD10)",
             "gender": "Sex"
         }
     else:
         variable_map = {
             "sbp": "systolic blood pressure automated reading",
             # yearly tobacco use in kg to cigarettes per day
-            #"tobacco": "Amount of tobacco currently smoked",
+            # "tobacco": "Amount of tobacco currently smoked",
             # yearly alcohol intake(guessing grams/day)? to never, monthly or less, 2 to 4 times a week
-            #"alcohol": "Frequency of drinking alcohol",
+            # "alcohol": "Frequency of drinking alcohol",
             "obesity": "Body mass index (BMI)",
             "ldl": "LDL direct",
         }
@@ -88,8 +94,7 @@ def get_variable_map(target_disease: str = "diabetes"):
 
 def train_risk_score_model(target_disease: str = "diabetes", categorical_columns: list = ['Sex', 'Tobacco smoking'],
                            drop_columns: list = ["age", "smoking_history"]):
-
-    #data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
+    # data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
     data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
     variable_mapping = get_variable_map(target_disease)[0]
     smoking_mapping = get_variable_map(target_disease)[1]
@@ -104,7 +109,6 @@ def train_risk_score_model(target_disease: str = "diabetes", categorical_columns
     # Rename variables based on the mapping dictionary
     data = data.rename(columns=variable_mapping)
 
-
     # Determine categories of categorical columns
     if target_disease == "diabetes":
         category_names = {}
@@ -118,7 +122,6 @@ def train_risk_score_model(target_disease: str = "diabetes", categorical_columns
         # One-hot encode categorical columns
         encoder.fit(data[categorical_columns])
         data = convert_to_features(data, encoder, categorical_columns)
-
 
     # Split data into features (X) and target (y)
     y = data[target_disease]
@@ -169,19 +172,68 @@ def get_risk_score(df, disease="diabetes"):
     return has_disease, risk_score[:, 1]
 
 
-def test_random_patient(disease="diabetes"):
-    # Calculate risk score for a new patient (with the first model)
-    if disease == "diabetes":
-        patient = {'Sex': 'Male', 'hypertension': 1, 'heart_disease': 1,
-                   'Body mass index (BMI)': 30, 'Glycated haemoglobin (HbA1c)': 6.5,
-                   'Glucose': 200, 'Year of birth': 1964, 'Tobacco smoking': 'Ex-smoker'}
-        #assert get_risk_score(patient)[1] == 0.75190808
-    elif disease == "CHD":
-        patient = {"systolic blood pressure automated reading": 120, "tobacco": 12, "LDL direct": 5,
-                   "Body mass index (BMI)": 32, "alcohol": 97.2, "Year of birth": 1953}
-        #risk score should be 0.58063699
-    return get_risk_score(patient, disease)
+class PredictionService:
+    def __init__(self, database_session, filter_service: FilterService):
+        self._database_session = database_session
+        self._filter_service = filter_service
 
+    @staticmethod
+    def get_entities_for_disease(disease="diabetes"):
+        if disease == "diabetes":
+            cat_entities = ["Gender", "Diabetes"]
+            # Actual database entities
+            # cat_entities = ["Diagnoses - ICD10", "Sex", "Tobacco smoking"]
+            # num_entities = ["year of birth", "Glucose", "Body mass index (BMI)", "Glycated haemoglobin (HbA1c)"]
+            num_entities = ["Delta0", "Delta2"]
+        if disease == "CHD":
+            cat_entities = []
+            # Actual database entities
+            # cat_entities = ["alcohol use"]
+            # num_entities = ["sbp", "tobacco", "ldl", "age", "obesity"]
+            num_entities = ["Jitter_rel"]
+        return cat_entities, num_entities
 
-#train_risk_score_model()
-#test_random_patient()
+    def get_risk_score_for_name_id(self, name_id, disease="diabetes") -> dict:
+
+        (cat_entities, num_entities) = PredictionService.get_entities_for_disease(disease)
+        if "Diabetes" in cat_entities:
+            cat_entities.remove("Diabetes")
+
+        print(cat_entities)
+
+        query = self._database_session.query(
+            TableCategorical.name_id,
+            TableCategorical.measurement,
+            TableCategorical.value.label('Diabetes')
+        )
+
+        for i, cat_entity in enumerate(cat_entities):
+            tc_alias = aliased(TableCategorical, name=f'TableCategorical{i}')
+            query = query.join(tc_alias, and_(
+                TableCategorical.name_id == tc_alias.name_id,
+                tc_alias.key == cat_entity
+            )
+                               ).add_columns(tc_alias.value.label(cat_entity))
+
+        for i, num_entity in enumerate(num_entities):
+            tn_alias = aliased(TableNumerical, name=f'TableNumerical{i}')
+            query = query.join(
+                tn_alias,
+                and_(
+                    tn_alias.name_id == TableCategorical.name_id,
+                    tn_alias.key == num_entity
+                )
+            ).add_columns(tn_alias.value.label(num_entity))
+
+        query = query.filter(TableCategorical.key == 'Diabetes')
+        query = query.filter(TableCategorical.name_id == name_id)
+
+        if disease == "CHD":
+            drop_columns = ["typea", "famhist", "adiposity", "age"]
+        else:
+            drop_columns = ["age", 'smoking_history']
+
+        train_risk_score_model(target_disease=disease, drop_columns=drop_columns)
+        result = pd.DataFrame(query.all()), test_random_patient(disease)
+
+        return result
