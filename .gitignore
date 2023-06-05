@@ -18,3 +18,5 @@ dev_import.ini
 /coverage/
 lib
 bin
+/plugins/DiabetesRiskScorePlugin
+/plugins/AdditionPlugin
