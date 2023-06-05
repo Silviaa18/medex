@@ -19,13 +19,13 @@ class Importer:
             config: Config,
             entity_importer: EntityImporter = None,
             dataset_importer: DatasetImporter = None,
-            plugin_importer: PluginImporter = None,
+          #  plugin_importer: PluginImporter = None,
     ):
         self._setup = setup
         self._header_importer = header_importer
         self._entity_importer = entity_importer
         self._dataset_importer = dataset_importer
-        self._plugin_importer = plugin_importer
+       # self._plugin_importer = plugin_importer
         self._config = config
 
     def setup_database(self):

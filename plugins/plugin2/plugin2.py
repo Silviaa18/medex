@@ -50,14 +50,12 @@ def save_model(model, encoder=None, scaler=None, disease="diabetes"):
     joblib.dump(scaler, f'{disease}scaler.pkl')
 
 
-def load_model(target_disease: str = "diabetes", encoder=True):
-    model = joblib.load(f'{target_disease}_prediction_model.pkl')
-    scaler = joblib.load(f'{target_disease}scaler.pkl')
-    if encoder:
-        encoder = joblib.load(f'{target_disease}encoder.pkl')
-        return model, encoder, scaler
-    else:
-        return model, None, scaler
+def load_model():
+    model = joblib.load(f'diabetes_prediction_model.pkl')
+    scaler = joblib.load(f'diabetes_scaler.pkl')
+
+    encoder = joblib.load(f'diabetes_encoder.pkl')
+    return model, encoder, scaler
 
 
 def get_variable_map(target_disease: str = "diabetes"):
@@ -251,21 +249,21 @@ class PredictionService:
 
         return result
 
-    def add_prediction_row(self):
 
-        query = self._database_session.query(TableCategorical.name_id).distinct()
-        cat_name_ids = [row[0] for row in query.all()]
-        new_entity = NameType(key='diabetes_prediction', synonym='diabetes_prediction', description='', unit='',
-                              show='', type="String")
-        self._database_session.merge(new_entity)
-        for name_id in cat_name_ids:
-            existing_row = self._database_session.query(TableCategorical).filter_by(name_id=name_id,
-                                                                                    key='diabetes_prediction').first()
-            if existing_row is None:
-                # value = str(self.get_risk_score_for_name_id(name_id)[1][0])
-                value = 'True'
-                prediction_row = TableCategorical(name_id=name_id, key='diabetes_prediction', value=value,
-                                                  case_id=name_id, measurement='1', date='2011-04-16', time='17:50:41')
-                self._database_session.merge(prediction_row)
-        self._database_session.commit()
-        print("Row successfully added!")
+def add_prediction_row(self, entity_key, entity_value, entity_type, default_value, case_id, measurement, date, time):
+    query = self._database_session.query(TableCategorical.name_id).distinct()
+    cat_name_ids = [row[0] for row in query.all()]
+
+    new_entity = NameType(key=entity_key, synonym=entity_key, description='', unit='', show='', type=entity_type)
+    self._database_session.merge(new_entity)
+
+    for name_id in cat_name_ids:
+        existing_row = self._database_session.query(TableCategorical).filter_by(name_id=name_id, key=entity_key).first()
+
+        if existing_row is None:
+            value = default_value
+            prediction_row = TableCategorical(name_id=name_id, key=entity_key, value=value, case_id=case_id,
+                                              measurement=measurement, date=date, time=time)
+            self._database_session.merge(prediction_row)
+
+    self._database_session.commit()
