@@ -3,11 +3,13 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+
+from plugins.plugin2.plugin2 import PredictionService
 from tests.fixtures.db_session import db_session
 from plugins import plugin2
 from medex.database_schema import TableCategorical
 #from medex.services.better_risk_score_model import test_random_patient
-from medex.services.prediction import PredictionService
+#from medex.services.prediction import PredictionService
 
 
 class TestPredictionService:

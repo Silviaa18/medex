@@ -7,7 +7,7 @@ import joblib
 
 from sqlalchemy import and_
 from medex.services.filter import FilterService
-from medex.database_schema import TableNumerical,TableCategorical, NameType
+from medex.database_schema import TableNumerical, TableCategorical, NameType
 from sqlalchemy.orm import aliased
 
 
@@ -177,11 +177,11 @@ def random_patient(disease="diabetes"):
         patient = {'Sex': 'Male', 'hypertension': 1, 'heart_disease': 1,
                    'Body mass index (BMI)': 30, 'Glycated haemoglobin (HbA1c)': 6.5,
                    'Glucose': 200, 'Year of birth': 1964, 'Tobacco smoking': 'Ex-smoker'}
-        #assert get_risk_score(patient)[1] == 0.75190808
+        # assert get_risk_score(patient)[1] == 0.75190808
     elif disease == "CHD":
         patient = {"systolic blood pressure automated reading": 120, "tobacco": 12, "LDL direct": 5,
                    "Body mass index (BMI)": 32, "alcohol": 97.2, "Year of birth": 1953}
-        #risk score should be 0.58063699
+        # risk score should be 0.58063699
     return get_risk_score(patient, disease)
 
 
@@ -269,4 +269,3 @@ class PredictionService:
                 self._database_session.merge(prediction_row)
         self._database_session.commit()
         print("Row successfully added!")
-

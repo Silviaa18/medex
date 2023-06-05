@@ -1,13 +1,14 @@
 from flask import Flask, jsonify, request
-from medex.services.better_risk_score_model import train_risk_score_model, test_random_patient
+from plugins import plugin2
+from plugins.plugin2.plugin2 import train_risk_score_model
 
 app = Flask(__name__)
 
 
-@app.route("/run_functions", methods=["POST"])
-def run_functions():
-    train_risk_score_model()
-    result = test_random_patient()
-    return jsonify(result=result)
+#@app.route("/run_functions", methods=["POST"])
+#def run_functions():
+ #   train_risk_score_model()
+  #  result = test_random_patient()
+   # return jsonify(result=result)
 
 
