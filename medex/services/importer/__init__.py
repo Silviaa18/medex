@@ -8,7 +8,7 @@ from medex.services.importer.database_setup import DatabaseSetup
 from medex.services.importer.dataset import DatasetImporter
 from medex.services.importer.entitity import EntityImporter
 from medex.services.importer.header import HeaderImporter
-from medex.services.importer.plugin import PluginImporter
+from medex.services.importer.plugin_importer import PluginImporter
 
 
 class Importer:
@@ -19,13 +19,13 @@ class Importer:
             config: Config,
             entity_importer: EntityImporter = None,
             dataset_importer: DatasetImporter = None,
-            plugin_importer: PluginImporter = None,
+            #plugin_importer: PluginImporter = None,
     ):
         self._setup = setup
         self._header_importer = header_importer
         self._entity_importer = entity_importer
         self._dataset_importer = dataset_importer
-        self._plugin_importer = plugin_importer
+        #self._plugin_importer = plugin_importer
         self._config = config
 
     def setup_database(self):
@@ -67,7 +67,8 @@ def get_importer():
         header_importer=_get_header_importer(db_session, config),
         entity_importer=_get_entity_importer(db_session, config),
         dataset_importer=_get_dataset_importer(db_session, config),
-        config=config
+        config=config,
+        #PluginImporter=_get_plugin_importer(config)
     )
 
 

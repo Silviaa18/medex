@@ -7,7 +7,7 @@ import joblib
 
 from sqlalchemy import and_
 from medex.services.filter import FilterService
-from medex.database_schema import TableNumerical,TableCategorical, NameType
+from medex.database_schema import TableNumerical, TableCategorical, NameType
 from sqlalchemy.orm import aliased
 
 
@@ -41,13 +41,6 @@ def convert_to_features(df, enc, categorical_columns: list = ['Sex', 'Tobacco sm
     df = pd.concat([df_onehot, df[columns]], axis=1)
 
     return df
-
-
-def save_model(model, encoder=None, scaler=None, disease="diabetes"):
-    joblib.dump(model, f'{disease}_prediction_model.pkl')
-    if encoder:
-        joblib.dump(encoder, f'{disease}encoder.pkl')
-    joblib.dump(scaler, f'{disease}scaler.pkl')
 
 
 def load_model(target_disease: str = "diabetes", encoder=True):
@@ -89,63 +82,6 @@ def get_variable_map(target_disease: str = "diabetes"):
         }
 
     return variable_map, smoking_mapping
-
-
-def train_risk_score_model(target_disease: str = "diabetes", categorical_columns: list = ['Sex', 'Tobacco smoking'],
-                           drop_columns: list = ["age", "smoking_history"]):
-    # data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
-    data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
-    variable_mapping = get_variable_map(target_disease)[0]
-    smoking_mapping = get_variable_map(target_disease)[1]
-    # year of birth was determined in 2008
-    data['Year of birth'] = 2008 - data['age']
-
-    # not current, former, ever,  current, No Info, never to Ex-smoker 2x, Occasionally, Smokes on most or all days,
-    # Prefer not to answer, Never smoked
-    if target_disease == "diabetes":
-        data["Tobacco smoking"] = data["smoking_history"].map(smoking_mapping)
-
-    # Rename variables based on the mapping dictionary
-    data = data.rename(columns=variable_mapping)
-
-    # Determine categories of categorical columns
-    if target_disease == "diabetes":
-        category_names = {}
-        for col in categorical_columns:
-            category_names[col] = data[col].unique()
-        encoder = OneHotEncoder(categories=[category_names[col] for col in categorical_columns])
-
-    scaler = StandardScaler()
-    model = LogisticRegression()
-    if target_disease == "diabetes":
-        # One-hot encode categorical columns
-        encoder.fit(data[categorical_columns])
-        data = convert_to_features(data, encoder, categorical_columns)
-
-    # Split data into features (X) and target (y)
-    y = data[target_disease]
-    x = data.drop([target_disease] + drop_columns, axis=1)
-
-    # Scale the input features
-    x_scaled = scaler.fit_transform(x)
-
-    # Train the logistic regression model using the scaled data
-    model.fit(x_scaled, y)
-
-    # Print the model coefficients
-    coef_dict = {}
-    for coef, feat in zip(model.coef_[0], x.columns):
-        coef_dict[feat] = coef
-    print(coef_dict)
-    # Evaluate model accuracy
-    y_pred = model.predict(x_scaled)
-    accuracy = accuracy_score(y, y_pred)
-    print('Accuracy:', accuracy)
-
-    if target_disease == "CHD":
-        save_model(model, None, scaler, target_disease)
-    else:
-        save_model(model, encoder, scaler, target_disease)
 
 
 def get_risk_score(df, disease="diabetes"):
@@ -216,8 +152,7 @@ class PredictionService:
 
         query = self._database_session.query(
             TableCategorical.name_id,
-            TableCategorical.measurement,
-            TableCategorical.value.label('Diabetes')
+            TableCategorical.measurement
         )
 
         for i, cat_entity in enumerate(cat_entities):
@@ -251,6 +186,7 @@ class PredictionService:
 
         return result
 
+    # instanceof CalcInterface
     def add_prediction_row(self):
 
         query = self._database_session.query(TableCategorical.name_id).distinct()
@@ -258,15 +194,85 @@ class PredictionService:
         new_entity = NameType(key='diabetes_prediction', synonym='diabetes_prediction', description='', unit='',
                               show='', type="String")
         self._database_session.merge(new_entity)
+        # filter out patients who have prediction
+        # prepare df # 600 valid patienten
+        # return_value = plugin_call
+
+        # if instanceof list[TableCategorical] else error
+        # return_value[0] instanceof TableCategorical
+
+        # for (i, value) in enumerate(return_value):
         for name_id in cat_name_ids:
+            # name_id = df[i row][name_id]
             existing_row = self._database_session.query(TableCategorical).filter_by(name_id=name_id,
                                                                                     key='diabetes_prediction').first()
             if existing_row is None:
                 # value = str(self.get_risk_score_for_name_id(name_id)[1][0])
                 value = 'True'
-                prediction_row = TableCategorical(name_id=name_id, key='diabetes_prediction', value=value,
-                                                  case_id=name_id, measurement='1', date='2011-04-16', time='17:50:41')
+                prediction_row = TableCategorical(name_id=name_id, key='diabetes_prediction', value=value)
                 self._database_session.merge(prediction_row)
         self._database_session.commit()
-        print("Row successfully added!")
 
+
+def save_model(model, encoder=None, scaler=None, disease="diabetes"):
+    joblib.dump(model, f'{disease}_prediction_model.pkl')
+    if encoder:
+        joblib.dump(encoder, f'{disease}encoder.pkl')
+    joblib.dump(scaler, f'{disease}scaler.pkl')
+
+
+def train_risk_score_model(target_disease: str = "diabetes", categorical_columns: list = ['Sex', 'Tobacco smoking'],
+                           drop_columns: list = ["age", "smoking_history"]):
+    data = pd.read_csv(f'../../examples/{target_disease}_prediction_dataset.csv')
+    #data = pd.read_csv(f'examples/{target_disease}_prediction_dataset.csv')
+    variable_mapping = get_variable_map(target_disease)[0]
+    smoking_mapping = get_variable_map(target_disease)[1]
+    # year of birth was determined in 2008
+    data['Year of birth'] = 2008 - data['age']
+
+    # not current, former, ever,  current, No Info, never to Ex-smoker 2x, Occasionally, Smokes on most or all days,
+    # Prefer not to answer, Never smoked
+    if target_disease == "diabetes":
+        data["Tobacco smoking"] = data["smoking_history"].map(smoking_mapping)
+
+    # Rename variables based on the mapping dictionary
+    data = data.rename(columns=variable_mapping)
+
+    # Determine categories of categorical columns
+    if target_disease == "diabetes":
+        category_names = {}
+        for col in categorical_columns:
+            category_names[col] = data[col].unique()
+        encoder = OneHotEncoder(categories=[category_names[col] for col in categorical_columns])
+
+    scaler = StandardScaler()
+    model = LogisticRegression()
+    if target_disease == "diabetes":
+        # One-hot encode categorical columns
+        encoder.fit(data[categorical_columns])
+        data = convert_to_features(data, encoder, categorical_columns)
+
+    # Split data into features (X) and target (y)
+    y = data[target_disease]
+    x = data.drop([target_disease] + drop_columns, axis=1)
+
+    # Scale the input features
+    x_scaled = scaler.fit_transform(x)
+
+    # Train the logistic regression model using the scaled data
+    model.fit(x_scaled, y)
+
+    # Print the model coefficients
+    coef_dict = {}
+    for coef, feat in zip(model.coef_[0], x.columns):
+        coef_dict[feat] = coef
+    print(coef_dict)
+    # Evaluate model accuracy
+    y_pred = model.predict(x_scaled)
+    accuracy = accuracy_score(y, y_pred)
+    print('Accuracy:', accuracy)
+
+    if target_disease == "CHD":
+        save_model(model, None, scaler, target_disease)
+    else:
+        save_model(model, encoder, scaler, target_disease)

@@ -5,8 +5,9 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
-from medex.services.better_risk_score_model import get_entities_for_disease, load_model, train_risk_score_model, \
-    get_risk_score, convert_to_features, save_model
+from medex.services.importer import _get_plugin_importer
+from medex.controller.helpers import get_filter_service
+from medex.services.database import get_db_session
 
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -17,11 +18,18 @@ from pathlib import Path
 from os import getcwd
 
 
-
 class MyTestCase(unittest.TestCase):
+    print(_get_plugin_importer())
+    plugin_imp = _get_plugin_importer()
+    plugin_list = plugin_imp.import_plugins()
+    print(plugin_list)
+    plugin = plugin_list[1]
+
+    db_session = get_db_session()
+    filter_service = get_filter_service()
     def test_get_entities_for_disease(self):
         # Test case for disease = "diabetes"
-        cat_entities, num_entities = get_entities_for_disease("diabetes")
+        cat_entities, num_entities = plugin.get_entities_for_disease("diabetes")
         assert cat_entities == ["Gender", "Diabetes"]
         assert num_entities == ["Delta0", "Delta2"]
 

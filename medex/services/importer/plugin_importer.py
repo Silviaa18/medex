@@ -40,7 +40,13 @@ class PluginImporter:
             spec = importlib.util.spec_from_file_location(module_name, file)
             plugin_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(plugin_module)
-            return plugin_module
+            if issubclass(plugin_module.CalculatorPlugin, PluginInterface):
+                return plugin_module
+            else:
+                print(f"Error importing module '{module_name}': Does not implement PluginInterface")
+                return None
+
         except Exception as e:
             print(f"Error importing module '{module_name}': {e}")
             return None
+

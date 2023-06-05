@@ -4,7 +4,7 @@ from unittest import mock
 
 from pyfakefs.fake_filesystem_unittest import TestCase
 
-from medex.services.importer.plugin import PluginImporter
+from medex.services.importer.plugin_importer import PluginImporter
 
 
 class PluginImporterTest(TestCase):
@@ -25,7 +25,7 @@ class PluginImporterTest(TestCase):
 
     def test_import_plugins_with_files(self):
         self.fs.create_file('plugins/plugin1/plugin1.py')
-        self.fs.create_file('plugins/plugin2/plugin2.py')
+        self.fs.create_file('plugins/diabetes_prediction/diabetes_prediction.py')
         importer = PluginImporter(plugin_folder="plugins")
         with mock.patch('importlib.util.spec_from_file_location') as mock_spec_from_file_location:
             def mock_spec(module_name, file):
