@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
-from medex.services.better_risk_score_model import get_entities_for_disease, load_model, train_risk_score_model, \
+from plugins.plugin2.plugin2 import get_entities_for_disease, load_model, train_risk_score_model, \
     get_risk_score, convert_to_features, save_model
 
 import pandas as pd
@@ -107,12 +107,12 @@ def test_load_model(folder=""):
 def test_train_risk_score_model_diabetes():
     # Define test data
     target_disease = "diabetes"
-    categorical_columns = ['gender', 'smoking_history']
+    categorical_columns = ['Sex', 'smoking_history']
     drop_columns = []
 
     # Create a dummy CSV file for testing
     test_data = pd.DataFrame({
-        'gender': ['Male', 'Female', 'Male'],
+        'Sex': ['Male', 'Female', 'Male'],
         'smoking_history': ['Yes', 'No', 'No'],
         'diabetes': [1, 0, 1]
     })
@@ -215,10 +215,9 @@ def test_get_risk_score(expected_has_disease=None, expected_risk_score=None):
     scaler = MagicMock()
 
 
-
     # Mock load_model function
     load_model_mock = MagicMock(return_value=(model, encoder, scaler))
-    with patch('medex.services.better_risk_score_model.load_model', load_model_mock):
+    with patch('plugins.plugin2.plugin2.load_model', load_model_mock):
         # Call the function being tested
         result = get_risk_score(df, disease)
 

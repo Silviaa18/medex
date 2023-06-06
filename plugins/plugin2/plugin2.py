@@ -5,6 +5,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 import joblib
 
+
 from sqlalchemy import and_
 from medex.services.filter import FilterService
 from medex.database_schema import TableNumerical,TableCategorical, NameType
@@ -28,7 +29,7 @@ def get_entities_for_disease(disease="diabetes"):
     return cat_entities, num_entities
 
 
-def convert_to_features(df, enc, categorical_columns: list = ['Sex', 'Tobacco smoking']):
+def convert_to_features(df, enc, categorical_columns: list = ['gender', 'smoking_history']):
     assert isinstance(categorical_columns, list)
 
     onehot = enc.transform(df[categorical_columns])
@@ -169,6 +170,7 @@ def get_risk_score(df, disease="diabetes"):
     has_disease = risk_score[:, 1] >= 0.5
 
     return has_disease, risk_score[:, 1]
+
 
 
 def random_patient(disease="diabetes"):

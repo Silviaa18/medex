@@ -25,6 +25,8 @@ pydantic = "*"
 flask-sqlalchemy = "*"
 kaleido = "*"
 importlib-metadata = "*"
+pyfakefs = "*"
+
 
 [dev-packages]
 pylint = "*"
