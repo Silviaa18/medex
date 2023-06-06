@@ -27,6 +27,9 @@ class Importer:
         self._dataset_importer = dataset_importer
         self._plugin_importer = plugin_importer
         self._config = config
+        if self._plugin_importer is not None:
+            print(f"Loading plugins from {config.plugin_path} ...")
+            self._plugin_importer.import_plugins()
 
     def setup_database(self):
         self._setup.do_it()
@@ -43,14 +46,11 @@ class Importer:
             self._dataset_importer.populate_patient_table()
             print('Optimizing tables ...')
             self._dataset_importer.optimize_tables()
-            if self_plugin_importer is not None:
-                print(f"Loading plugins from {config.plugin_path} ...")
-                self._plugin_importer.import_plugins()
             print(f"Touching {self._config.import_marker_path}")
             Path(self._config.import_marker_path).touch()
         print('Database setup completed.')
-        if self_plugin_importer is not None:
-            self._plugin_importer.on_db_ready(self.setup._db_session)
+        if self._plugin_importer is not None:
+            self._plugin_importer.on_db_ready(self._setup._db_session)
 
     def _do_import_preflight_check(self):
         config = self._config

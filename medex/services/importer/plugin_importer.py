@@ -3,6 +3,8 @@ import os
 import importlib.util
 import pathlib
 
+from medex.services.importer.plugin_interface import PluginInterface
+
 
 class PluginImporter:
     def __init__(self, plugin_folder):
@@ -15,11 +17,10 @@ class PluginImporter:
         for file in plugin_files:
             module_name = PluginImporter._get_module_name(file)
             plugin_module = self._import_module(module_name, file)
-            plugin_module.on_loaded()
 
-            if plugin_module:
+            if plugin_module is not None:
+                plugin_module.on_loaded()
                 self.plugin_modules.append(plugin_module)
-
 
     def on_db_ready(self, session):
         for plugin_module in self.plugin_modules:
@@ -44,8 +45,21 @@ class PluginImporter:
             spec = importlib.util.spec_from_file_location(module_name, file)
             plugin_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(plugin_module)
-            if issubclass(PluginInterface):
-                return plugin_module
+
+            get_class_function_name = 'get_plugin_class'
+
+            # Plugin doesn't define the required function that identifies it as a plugin
+            if not hasattr(plugin_module, get_class_function_name):
+                return None
+            get_plugin_class = getattr(plugin_module, get_class_function_name)
+            PluginClass = get_plugin_class()
+
+            # Plugins can't have constructor arguments
+            plugin = PluginClass()
+
+            # Plugins must subclass PluginInterface
+            if issubclass(PluginClass, PluginInterface):
+                return plugin
             else:
                 print(f"Error importing module '{module_name}': Does not implement PluginInterface")
                 return None

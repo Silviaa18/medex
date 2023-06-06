@@ -37,7 +37,7 @@ class Config:
         self.dataset_path = dataset_path
 
         if plugin_path is None:
-            plugin_path = join(import_directory, 'plugins')
+            plugin_path = join(base_directory, 'plugins')
 
         self.plugin_path = plugin_path
 

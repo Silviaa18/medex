@@ -6,6 +6,8 @@ __pycache__
 .vscode
 .DS_store
 
+venv
+
 import/*
 !import/.gitkeep
 dev_import.ini
