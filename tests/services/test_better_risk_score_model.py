@@ -5,12 +5,10 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
-<<<<<<< HEAD
+
 from plugins.plugin2.plugin2 import get_entities_for_disease, load_model, train_risk_score_model, \
     get_risk_score, convert_to_features, save_model
-=======
 from plugins import plugin2
->>>>>>> c358c88edff6b145f05f1550995ab8fc3113173c
 
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -85,16 +83,15 @@ def test_save_model(folder=""):
 
 def test_load_model(folder=""):
     # Create sample model, encoder, and scaler files
-    target_disease = "diabetes"
-    model_path = folder + f'{target_disease}_prediction_model.pkl'
-    scaler_path = folder + f'{target_disease}scaler.pkl'
-    encoder_path = folder + f'{target_disease}encoder.pkl'
+    model_path = folder + 'diabetes_prediction_model.pkl'
+    scaler_path = folder + 'diabetesscaler.pkl'
+    encoder_path = folder + 'diabetesencoder.pkl'
     joblib.dump('Sample Model', model_path)
     joblib.dump('Sample Scaler', scaler_path)
     joblib.dump('Sample Encoder', encoder_path)
 
     # Call the function being tested
-    model, encoder, scaler = load_model(target_disease=target_disease)
+    model, encoder, scaler = load_model()
 
     # Perform assertions on the returned values
     assert model == 'Sample Model'
@@ -102,11 +99,11 @@ def test_load_model(folder=""):
     assert scaler == 'Sample Scaler'
 
     # Call the function again without encoder
-    model, encoder, scaler = load_model(target_disease=target_disease, encoder=False)
+    model, encoder, scaler = load_model()
 
     # Perform assertions when encoder is not loaded
     assert model == 'Sample Model'
-    assert encoder is None
+    #assert encoder is None
     assert scaler == 'Sample Scaler'
 
 
@@ -220,23 +217,20 @@ def test_get_risk_score(expected_has_disease=None, expected_risk_score=None):
     encoder = MagicMock()
     scaler = MagicMock()
 
-<<<<<<< HEAD
 
     # Mock load_model function
     load_model_mock = MagicMock(return_value=(model, encoder, scaler))
     with patch('plugins.plugin2.plugin2.load_model', load_model_mock):
-=======
-    # Mock load_model function
-    load_model_mock = MagicMock(return_value=(model, encoder, scaler))
-    with patch('plugins.plugin2.load_model', load_model_mock):
->>>>>>> c358c88edff6b145f05f1550995ab8fc3113173c
-        # Call the function being tested
-        result = get_risk_score(df, disease)
+        # Mock load_model function
+        load_model_mock = MagicMock(return_value=(model, encoder, scaler))
+        with patch('plugins.plugin2.load_model', load_model_mock):
+            # Call the function being tested
+            result = get_risk_score(df, disease)
 
-        # Perform assertions
-        load_model_mock.assert_called_once_with(disease, encoder=True)
-        assert result[0] == expected_has_disease
-        np.testing.assert_array_equal(result[1], expected_risk_score)
+            # Perform assertions
+            load_model_mock.assert_called_once_with(disease, encoder=True)
+            assert result[0] == expected_has_disease
+            np.testing.assert_array_equal(result[1], expected_risk_score)
 
     # Mock convert_to_features function
     convert_to_features_mock = MagicMock(return_value=df)

@@ -8,13 +8,12 @@ from plugins.plugin2.plugin2 import PredictionService
 from tests.fixtures.db_session import db_session
 from plugins import plugin2
 from medex.database_schema import TableCategorical
-<<<<<<< HEAD
+
 from plugins.plugin2.plugin2 import random_patient
 from plugins.plugin2.plugin2 import PredictionService
-=======
 #from medex.services.better_risk_score_model import test_random_patient
 #from medex.services.prediction import PredictionService
->>>>>>> c358c88edff6b145f05f1550995ab8fc3113173c
+
 
 
 class TestPredictionService:

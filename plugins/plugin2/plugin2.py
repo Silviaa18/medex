@@ -53,9 +53,9 @@ def save_model(model, encoder=None, scaler=None, disease="diabetes"):
 
 def load_model():
     model = joblib.load(f'diabetes_prediction_model.pkl')
-    scaler = joblib.load(f'diabetes_scaler.pkl')
+    scaler = joblib.load(f'diabetesscaler.pkl')
 
-    encoder = joblib.load(f'diabetes_encoder.pkl')
+    encoder = joblib.load(f'diabetesencoder.pkl')
     return model, encoder, scaler
 
 
