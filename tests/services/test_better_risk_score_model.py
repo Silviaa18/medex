@@ -223,7 +223,7 @@ def test_get_risk_score(expected_has_disease=None, expected_risk_score=None):
     with patch('plugins.plugin2.plugin2.load_model', load_model_mock):
         # Mock load_model function
         load_model_mock = MagicMock(return_value=(model, encoder, scaler))
-        with patch('plugins.plugin2.load_model', load_model_mock):
+        with patch('plugins.plugin2.plugin2.load_model', load_model_mock):
             # Call the function being tested
             result = get_risk_score(df, disease)
 
