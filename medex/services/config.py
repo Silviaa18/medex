@@ -10,6 +10,7 @@ class Config:
             header_path: str = None,
             entities_path: str = None,
             dataset_path: str = None,
+            plugin_path: str = None,
     ):
         if base_directory is None:
             base_directory = normpath(dirname(dirname(dirname(__file__))))
@@ -34,6 +35,11 @@ class Config:
         if dataset_path is None:
             dataset_path = join(import_directory, 'dataset.csv')
         self.dataset_path = dataset_path
+
+        if plugin_path is None:
+            plugin_path = join(base_directory, 'plugins')
+
+        self.plugin_path = plugin_path
 
 
 _config = Config()
