@@ -19,13 +19,13 @@ class Importer:
             config: Config,
             entity_importer: EntityImporter = None,
             dataset_importer: DatasetImporter = None,
-            #plugin_importer: PluginImporter = None,
+            plugin_importer: PluginImporter = None,
     ):
         self._setup = setup
         self._header_importer = header_importer
         self._entity_importer = entity_importer
         self._dataset_importer = dataset_importer
-        #self._plugin_importer = plugin_importer
+        self._plugin_importer = plugin_importer
         self._config = config
 
     def setup_database(self):
@@ -43,11 +43,14 @@ class Importer:
             self._dataset_importer.populate_patient_table()
             print('Optimizing tables ...')
             self._dataset_importer.optimize_tables()
-            print('Importing plugins ...')
-            #self._plugin_importer.import_plugins()
+            if self_plugin_importer is not None:
+                print(f"Loading plugins from {config.plugin_path} ...")
+                self._plugin_importer.import_plugins()
             print(f"Touching {self._config.import_marker_path}")
             Path(self._config.import_marker_path).touch()
         print('Database setup completed.')
+        if self_plugin_importer is not None:
+            self._plugin_importer.on_db_ready(self.setup._db_session)
 
     def _do_import_preflight_check(self):
         config = self._config
@@ -65,10 +68,10 @@ def get_importer():
     return Importer(
         setup=DatabaseSetup(db_session=db_session, db_engine=db_engine, config=config),
         header_importer=_get_header_importer(db_session, config),
+        config=config,
         entity_importer=_get_entity_importer(db_session, config),
         dataset_importer=_get_dataset_importer(db_session, config),
-        config=config,
-        #PluginImporter=_get_plugin_importer(config)
+        plugin_importer=_get_plugin_importer(config),
     )
 
 
@@ -105,8 +108,10 @@ def _get_dataset_importer(db_session, config):
 
 
 def _get_plugin_importer(config=get_config()):
-    if not exists(config.dataset_path):
+    if not exists(config.plugin_path):
+        print(f"Couldn't find plugin folder ({config.plugin_path}) - skipping plugin import.")
         return None
+
     return PluginImporter(
-        plugin_folder="plugins"
+        plugin_folder=config.plugin_path
     )

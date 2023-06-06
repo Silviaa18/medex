@@ -7,19 +7,23 @@ import pathlib
 class PluginImporter:
     def __init__(self, plugin_folder):
         self.plugin_folder = plugin_folder
+        self.plugin_modules: list[PluginInterface] = []
 
     def import_plugins(self):
         plugin_files = self._get_plugin_files()
-        plugin_modules = []
 
         for file in plugin_files:
             module_name = PluginImporter._get_module_name(file)
             plugin_module = self._import_module(module_name, file)
+            plugin_module.on_loaded()
 
             if plugin_module:
-                plugin_modules.append(plugin_module)
+                self.plugin_modules.append(plugin_module)
 
-        return plugin_modules
+
+    def on_db_ready(self, session):
+        for plugin_module in self.plugin_modules:
+            plugin_module.on_db_ready(session)
 
     def _get_plugin_files(self):
         if not os.path.exists(self.plugin_folder):
@@ -40,7 +44,7 @@ class PluginImporter:
             spec = importlib.util.spec_from_file_location(module_name, file)
             plugin_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(plugin_module)
-            if issubclass(plugin_module.CalculatorPlugin, PluginInterface):
+            if issubclass(PluginInterface):
                 return plugin_module
             else:
                 print(f"Error importing module '{module_name}': Does not implement PluginInterface")
