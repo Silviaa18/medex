@@ -6,10 +6,11 @@ from medex.database_schema import TableNumerical, TableCategorical, NameType
 from medex.dto.entity import EntityType
 from typing import Optional
 from sqlalchemy.orm import aliased, Query
-from sqlalchemy import and_
+from sqlalchemy import and_, func, Integer
 from medex.services.importer.plugin_interface import PluginInterface
 
-class CHDRiskScorePlugin(PluginInterface):
+
+class CHDPredictionPlugin(PluginInterface):
     def __init__(self):
         # Only needed if our disease has categorical columns
         self.encoder: Optional = None
@@ -24,35 +25,35 @@ class CHDRiskScorePlugin(PluginInterface):
 
         if pathlib.Path(encoder_file).exists():
             self.encoder = joblib.load(encoder_file)
-        print('Calculator plugin loaded')
+        print('CHD risk score plugin loaded')
 
     @classmethod
     def get_categorical_keys(cls) -> list[str]:
         # actual database entries
-        # return ["alcohol"]
-        return ["Gender", "Diabetes"]
+        return ["alcohol"]
+        # return ["Gender", "Diabetes"]
 
     @classmethod
     def get_numerical_keys(cls) -> list[str]:
         # actual database entries
-        # return ["sbp", "tobacco", "ldl", "age", "obesity"]
-        return ["Jitter_rel", "Jitter_abs"]
+        return ["sbp", "tobacco", "ldl", "age", "obesity"]
+        # return ["Delta0", "Delta2"]
 
     @classmethod
     def disease_name(cls):
-        return 'chd'
+        return 'CHD'
 
     @classmethod
     def entity_type(cls) -> EntityType:
         return EntityType.CATEGORICAL
-
 
     def calculate_risk_score(self, df: pd.DataFrame) -> list[float]:
         if self.encoder is not None:
             onehot = self.encoder.transform(df[self.get_categorical_keys()])
             df_onehot = pd.DataFrame(
                 onehot.toarray(),
-                columns=self.encoder.get_feature_names_out(self.get_categorical_keys())
+                columns=self.encoder.get_feature_names_out(self.get_categorical_keys()),
+                index=df.index
             )
 
             # Concatenate numerical columns with one-hot encoded columns
@@ -64,7 +65,7 @@ class CHDRiskScorePlugin(PluginInterface):
         # Scale numerical columns
         df = self.scaler.transform(df)
 
-        return list(self.model.predict(df))
+        return list(self.model.predict_proba(df)[:, 1])
 
     def on_db_ready(self, session):
         table = TableCategorical if self.entity_type() == EntityType.CATEGORICAL else TableNumerical
@@ -72,8 +73,13 @@ class CHDRiskScorePlugin(PluginInterface):
 
         query = self.build_query(session, table, prediction_key)
         df = pd.DataFrame(query.all())
+
         if df.empty:
+            print('CHDPrediction: No new patients found - no risk scores calculated')
             return  # No new patients, early return
+
+        df.set_index('name_id', inplace=True)
+        df = df.reindex(sorted(df.columns), axis=1)
 
         risk_scores = self.calculate_risk_score(df)
 
@@ -82,33 +88,35 @@ class CHDRiskScorePlugin(PluginInterface):
         )
 
         for i, name_id in enumerate(df.index):
-            value = 'True' if risk_scores[i] > 0.5 else 'False'
+            value = 'True' if risk_scores[i] >= 0.5 else 'False'
 
-            prediction_row = table.__init__(
+            prediction_row = table(
                 name_id=name_id,
                 key=prediction_key,
                 value=value,
                 case_id=name_id,
                 measurement='1',
                 date='2011-04-16',  # TODO: Get real datetime
-                time='17:50:41'     # TODO: Get real datetime
+                time='18:50:41'  # TODO: Get real datetime
             )
-            session.merge(prediction_row)
+            session.add(prediction_row)
 
         session.commit()
+        print(f'{self.disease_name()}: Added risk scores for {len(risk_scores)} patients')
 
     @classmethod
-    def join_on_keys(cls, query: Query, table, keys: list[str]) -> Query:
+    def join_on_keys(cls, query: Query, base_table, current_table, keys: list[str]) -> Query:
         for key in keys:
-            alias = aliased(table, name=key)
+            alias = aliased(current_table, name='table_' + key)
             query = query.join(
                 alias,
                 and_(
-                    table.name_id == alias.name_id,
+                    base_table.name_id == alias.name_id,
                     alias.key == key
                 )
             ).add_columns(
-                alias.value.label(key)
+                # Because of the group by we aggregate but since only one value will be returned it doesn't matter
+                func.max(alias.value).label(key)
             )
 
         return query
@@ -122,24 +130,15 @@ class CHDRiskScorePlugin(PluginInterface):
     ) -> Query:
         (cat_keys, num_keys) = cls.get_categorical_keys(), cls.get_numerical_keys()
 
-        query = database_session.query(table.name_id, table.measurement)
-        query = cls.join_on_keys(query, TableCategorical, cat_keys)
-        query = cls.join_on_keys(query, TableNumerical, num_keys)
+        query = database_session.query(TableCategorical.name_id) \
+            .group_by(TableCategorical.name_id) \
+            .having(func.sum(func.cast(TableCategorical.key == prediction_key, Integer)) == 0)
 
-        # Filter out every row that already has prediction_key as an entity
-        self_alias = aliased(table, name=prediction_key)
-        query.join(
-            self_alias,
-            and_(
-                table.name_id == self_alias.name_id,
-                self_alias.key == prediction_key
-            ),
-            isouter=True,
-            full=True
-        ).filter(self_alias.value.is_(None))
+        query = cls.join_on_keys(query, table, TableCategorical, cat_keys)
+        query = cls.join_on_keys(query, table, TableNumerical, num_keys)
 
         return query
 
 
-#def get_plugin_class():
-#    return CHDRiskScorePlugin
+def get_plugin_class():
+    return CHDPredictionPlugin

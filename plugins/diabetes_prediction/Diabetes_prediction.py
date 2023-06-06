@@ -10,7 +10,7 @@ from sqlalchemy import and_, func, Integer
 from medex.services.importer.plugin_interface import PluginInterface
 
 
-class DiabetesRiskScorePlugin(PluginInterface):
+class DiabetesPredictionPlugin(PluginInterface):
     def __init__(self):
         # Only needed if our disease has categorical columns
         self.encoder: Optional = None
@@ -75,7 +75,7 @@ class DiabetesRiskScorePlugin(PluginInterface):
         df = pd.DataFrame(query.all())
 
         if df.empty:
-            print('DiabetesRiskScore: No new patients found - no risk scores calculates')
+            print('DiabetesRiskScore: No new patients found - no risk scores calculated')
             return  # No new patients, early return
 
         df.set_index('name_id', inplace=True)
@@ -137,20 +137,8 @@ class DiabetesRiskScorePlugin(PluginInterface):
         query = cls.join_on_keys(query, table, TableCategorical, cat_keys)
         query = cls.join_on_keys(query, table, TableNumerical, num_keys)
 
-        # Filter out every row that already has prediction_key as an entity
-        #self_alias = aliased(table, name=prediction_key)
-        #query = query.join(
-        #    self_alias,
-        #    and_(
-        #        table.name_id == self_alias.name_id,
-        #        self_alias.key == prediction_key
-        #    ),
-        #    isouter=True,
-        #    full=True
-        #).filter(self_alias.value.is_(None))
-
         return query
 
 
 def get_plugin_class():
-    return DiabetesRiskScorePlugin
+    return DiabetesPredictionPlugin
