@@ -24,7 +24,7 @@ class PluginImporter:
 
     def on_db_ready(self, session):
         for plugin_module in self.plugin_modules:
-            plugin_module.on_db_ready(session)
+            plugin_module.add_new_rows(session)
 
     def _get_plugin_files(self):
         if not os.path.exists(self.plugin_folder):

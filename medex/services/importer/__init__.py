@@ -45,12 +45,12 @@ class Importer:
             print('Populating patient table ...')
             self._dataset_importer.populate_patient_table()
             print('Optimizing tables ...')
+            self._plugin_importer.on_db_ready(self._setup._db_session)
             self._dataset_importer.optimize_tables()
             print(f"Touching {self._config.import_marker_path}")
             Path(self._config.import_marker_path).touch()
+        self._plugin_importer.on_db_ready(self._setup._db_session)
         print('Database setup completed.')
-        if self._plugin_importer is not None:
-            self._plugin_importer.on_db_ready(self._setup._db_session)
 
     def _do_import_preflight_check(self):
         config = self._config
