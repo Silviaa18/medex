@@ -13,7 +13,7 @@ from medex.services.importer.plugin_interface import PluginInterface
 class DiabetesPredictionPlugin(PluginInterface):
     PLUGIN_NAME = "DiabetesPredictionPlugin"
     DISEASE_NAME = "diabetes"
-    NUMERICAL_KEYS = ['hypertension', 'heart_disease', "Year of birth", "Glucose", "Body mass index (BMI)",
+    NUMERICAL_KEYS = ['heart_disease', "Year of birth", "Glucose", "Body mass index (BMI)",
                       "Glycated haemoglobin (HbA1c)"]
     CATEGORICAL_KEYS = ["Sex", "Tobacco smoking", "Diagnoses - ICD10"]
     NEW_KEY_NAME = "Diabetes_prediction"

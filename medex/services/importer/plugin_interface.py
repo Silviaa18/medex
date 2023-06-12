@@ -88,7 +88,12 @@ class PluginInterface(ABC):
             .group_by(self.table.name_id) \
             .having(func.sum(func.cast(self.table.key == self.NEW_KEY_NAME, Integer)) == 0)
 
-        query = self.join_on_keys(query, TableCategorical, self.CATEGORICAL_KEYS)
+        categorical_keys = self.CATEGORICAL_KEYS
+        if 'Diagnoses - ICD10' in categorical_keys:
+            categorical_keys.remove('Diagnoses - ICD10')
+            query = query.add_columns((func.sum(func.cast(and_(self.table.key == 'Diagnoses - ICD10', self.table.value == 'I10'), Integer)) > 0).label('hypertension'))
+
+        query = self.join_on_keys(query, TableCategorical, categorical_keys)
         query = self.join_on_keys(query, TableNumerical, self.NUMERICAL_KEYS)
 
         return query
