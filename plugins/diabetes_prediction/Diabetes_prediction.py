@@ -13,10 +13,14 @@ from medex.services.importer.plugin_interface import PluginInterface
 class DiabetesPredictionPlugin(PluginInterface):
     PLUGIN_NAME = "DiabetesPredictionPlugin"
     DISEASE_NAME = "diabetes"
-    NUMERICAL_KEYS = ['heart_disease', "Year of birth", "Glucose", "Body mass index (BMI)",
+    NUMERICAL_KEYS = ["Year of birth", "Glucose", "Body mass index (BMI)",
                       "Glycated haemoglobin (HbA1c)"]
-    CATEGORICAL_KEYS = ["Sex", "Tobacco smoking", "Diagnoses - ICD10"]
+    CATEGORICAL_KEYS = ["Sex", "Tobacco smoking"]
     NEW_KEY_NAME = "Diabetes_prediction"
+    ICD10_LABEL_MAPPING = {
+        'hypertension': ['I10'],
+        'heart_disease': ['I20', 'I21', 'I22', 'I23', 'I24', 'I25']
+    }
 
     def __init__(self):
         super().__init__()

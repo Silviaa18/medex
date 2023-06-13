@@ -13,6 +13,7 @@ class PluginInterface(ABC):
     NUMERICAL_KEYS = None
     CATEGORICAL_KEYS = None
     NEW_KEY_NAME = None
+    ICD10_LABEL_MAPPING = None
 
     def __init__(self):
         self.table = TableCategorical if self.entity_type() == EntityType.CATEGORICAL else TableNumerical
@@ -35,17 +36,21 @@ class PluginInterface(ABC):
                      type=self.entity_type().value)
         )
 
+    def icd10_match(self, query):
+        # Add conditions to label specific ICD10 values
+        for label, icd10_values in self.ICD10_LABEL_MAPPING.items():
+            query = query.add_columns((func.sum(
+                func.cast(and_(self.table.key == 'Diagnoses - ICD10', self.table.value.in_(icd10_values)),
+                          Integer)) > 0).label(label))
+
+        return query
+
     def add_new_rows(self, session):
         query = self.build_query(session)
         df = pd.DataFrame(query.all())
-        # Assuming 'ICD-10' is a column in the DataFrame
-        #df['hypertension'] = df['Diagnoses - ICD10'].apply(lambda x: 1 if x == 'I10' else 0)
-        #df = df.drop('Diagnoses - ICD10', axis=1)
-
         if df.empty:
             print(f'{self.PLUGIN_NAME}: No new patients found - nothing calculated')
             return
-
         df.set_index('name_id', inplace=True)
         df = df.reindex(sorted(df.columns), axis=1)
         self.add_entity_to_name_type_table(session)
@@ -88,14 +93,10 @@ class PluginInterface(ABC):
             .group_by(self.table.name_id) \
             .having(func.sum(func.cast(self.table.key == self.NEW_KEY_NAME, Integer)) == 0)
 
-        categorical_keys = self.CATEGORICAL_KEYS
-        if 'Diagnoses - ICD10' in categorical_keys:
-            categorical_keys.remove('Diagnoses - ICD10')
-            query = query.add_columns((func.sum(func.cast(and_(self.table.key == 'Diagnoses - ICD10', self.table.value == 'I10'), Integer)) > 0).label('hypertension'))
-
-        query = self.join_on_keys(query, TableCategorical, categorical_keys)
+        if self.ICD10_LABEL_MAPPING:
+            query = self.icd10_match(query)
+        query = self.join_on_keys(query, TableCategorical, self.CATEGORICAL_KEYS)
         query = self.join_on_keys(query, TableNumerical, self.NUMERICAL_KEYS)
 
         return query
-
 
