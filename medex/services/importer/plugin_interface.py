@@ -45,32 +45,41 @@ class PluginInterface(ABC):
 
         return query
 
+
+
     def add_new_rows(self, session):
         query = self.build_query(session)
-        df = pd.DataFrame(query.all())
+        offset = 0
+        batch_size = 1000
+        page = 0
+        df = pd.DataFrame(query.limit(batch_size).offset(offset))
         if df.empty:
             print(f'{self.PLUGIN_NAME}: No new patients found - nothing calculated')
             return
-        df.set_index('name_id', inplace=True)
-        df = df.reindex(sorted(df.columns), axis=1)
-        self.add_entity_to_name_type_table(session)
+        while not df.empty:
+            query_batch = query.limit(batch_size).offset(offset)
+            df = pd.DataFrame(query_batch.all())
+            df.set_index('name_id', inplace=True)
+            df = df.reindex(sorted(df.columns), axis=1)
+            self.add_entity_to_name_type_table(session)
 
-        values = self.calculate(df)  # calculate gives True/False back
-        for name_id, value in zip(df.index, values):
+            values = self.calculate(df)  # calculate gives True/False back
+            for name_id, value in zip(df.index, values):
 
-            prediction_row = self.table(
-                name_id=name_id,
-                key=self.NEW_KEY_NAME,
-                value=value,
-                case_id='',  # take from input
-                measurement='',  # take from input
-                date='',  # take from input
-                time=''  # take from input
-            )
+                prediction_row = self.table(
+                    name_id=name_id,
+                    key=self.NEW_KEY_NAME,
+                    value=value,
+                    case_id='',  # take from input
+                    measurement='',  # take from input
+                    date='',  # take from input
+                    time=''  # take from input
+                )
             session.add(prediction_row)
-
-        session.commit()
-        print(f'{self.DISEASE_NAME}: Added risk scores for {len(values)} patients')
+            session.commit()
+            offset += batch_size
+            page += 1
+        print(f'{self.DISEASE_NAME}: Added risk scores for {page*1000 +len(values)} patients')
 
     def join_on_keys(self, query: Query, current_table, keys: list[str]) -> Query:
         for key in keys:
@@ -79,6 +88,7 @@ class PluginInterface(ABC):
                 alias,
                 and_(
                     self.table.name_id == alias.name_id,
+                    self.table.measurement == alias.measurement,
                     alias.key == key
                 )
             ).add_columns(
@@ -89,8 +99,8 @@ class PluginInterface(ABC):
         return query
 
     def build_query(self, database_session) -> Query:
-        query = database_session.query(self.table.name_id) \
-            .group_by(self.table.name_id) \
+        query = database_session.query(self.table.name_id, self.table.measurement) \
+            .group_by(self.table.name_id, self.table.measurement) \
             .having(func.sum(func.cast(self.table.key == self.NEW_KEY_NAME, Integer)) == 0)
 
         if self.ICD10_LABEL_MAPPING:
