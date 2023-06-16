@@ -7,7 +7,6 @@ from medex.dto.entity import EntityType
 
 
 class PluginInterface(ABC):
-
     PLUGIN_NAME = None
     DISEASE_NAME = None
     NUMERICAL_KEYS = None
@@ -45,41 +44,62 @@ class PluginInterface(ABC):
 
         return query
 
-
+    def _get_db_record_(self, row):
+        return self.table(
+            name_id=row['name_id'],
+            key=self.NEW_KEY_NAME,
+            value=row[self.NEW_KEY_NAME],
+            case_id=row['case_id'],  # take from input
+            measurement="",  # take from input
+            date='',  # take from input
+            time=''  # take from input
+        )
 
     def add_new_rows(self, session):
         query = self.build_query(session)
         offset = 0
         batch_size = 1000
-        page = 0
-        df = pd.DataFrame(query.limit(batch_size).offset(offset))
-        if df.empty:
-            print(f'{self.PLUGIN_NAME}: No new patients found - nothing calculated')
-            return
-        while not df.empty:
+        columns = self.NUMERICAL_KEYS + (list(self.ICD10_LABEL_MAPPING.keys()) if self.ICD10_LABEL_MAPPING else list()) \
+                  + self.CATEGORICAL_KEYS
+
+        while True:
             query_batch = query.limit(batch_size).offset(offset)
             df = pd.DataFrame(query_batch.all())
-            df.set_index('name_id', inplace=True)
-            df = df.reindex(sorted(df.columns), axis=1)
+            if df.empty:
+                is_first_iteration = offset == 0
+                if is_first_iteration:
+                    print(f'{self.PLUGIN_NAME}: No new patients found - nothing calculated')
+                    return
+                break
+
             self.add_entity_to_name_type_table(session)
 
-            values = self.calculate(df)  # calculate gives True/False back
-            for name_id, value in zip(df.index, values):
+            df.set_index(['name_id', 'measurement'], inplace=True)
+            df = df.reindex(sorted(df.columns), axis=1)
 
-                prediction_row = self.table(
-                    name_id=name_id,
-                    key=self.NEW_KEY_NAME,
-                    value=value,
-                    case_id='',  # take from input
-                    measurement='',  # take from input
-                    date='',  # take from input
-                    time=''  # take from input
-                )
-            session.add(prediction_row)
+            model_df = df[sorted(columns)]
+            df[self.NEW_KEY_NAME] = self.calculate(model_df)
+
+            for (name_id, measurement), row in df.iterrows():
+                try:
+                    prediction_row = self.table(
+                        name_id=name_id,
+                        key=self.NEW_KEY_NAME,
+                        value=row[self.NEW_KEY_NAME],
+                        case_id=row['case_id'],  # take from input
+                        measurement=measurement,  # take from input
+                        date=row['date'],  # take from input
+                        time=''  # take from input
+                    )
+                    session.add(prediction_row)
+                except Exception as e:
+                    print(row)
+                    print(f"Failed to add record to DB: {str(e)} - skipping")
+
             session.commit()
-            offset += batch_size
-            page += 1
-        print(f'{self.DISEASE_NAME}: Added risk scores for {page*1000 +len(values)} patients')
+            offset += len(df)
+
+        print(f'{self.DISEASE_NAME}: Added risk scores for {offset} patients')
 
     def join_on_keys(self, query: Query, current_table, keys: list[str]) -> Query:
         for key in keys:
@@ -99,7 +119,9 @@ class PluginInterface(ABC):
         return query
 
     def build_query(self, database_session) -> Query:
-        query = database_session.query(self.table.name_id, self.table.measurement) \
+        query = database_session.query(self.table.name_id, self.table.measurement,
+                                       func.max(self.table.case_id).label("case_id"),
+                                       func.max(self.table.date).label("date")) \
             .group_by(self.table.name_id, self.table.measurement) \
             .having(func.sum(func.cast(self.table.key == self.NEW_KEY_NAME, Integer)) == 0)
 
@@ -109,4 +131,3 @@ class PluginInterface(ABC):
         query = self.join_on_keys(query, TableNumerical, self.NUMERICAL_KEYS)
 
         return query
-

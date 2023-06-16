@@ -8,30 +8,24 @@ import numpy as np
 from medex.services.importer.plugin_interface import PluginInterface
 
 
-class DiabetesPredictionPlugin(PluginInterface):
-    PLUGIN_NAME = "DiabetesPredictionPlugin"
-    DISEASE_NAME = "diabetes"
+class CHADSVAScPlugin(PluginInterface):
+    PLUGIN_NAME = "CHADSVAScPlugin"
+    DISEASE_NAME = "stroke"
     NUMERICAL_KEYS = ["Year of birth", "Glucose", "Body mass index (BMI)",
                       "Glycated haemoglobin (HbA1c)"]
     CATEGORICAL_KEYS = ["Sex", "Tobacco smoking"]
     NEW_KEY_NAME = "Diabetes_prediction"
     ICD10_LABEL_MAPPING = {
         'hypertension': ['I10'],
-        'heart_disease': ["I200", "I201", "I208", "I209",
-                          "I210", "I211", "I212", "I213", "I214", "I219",
-                          "I220", "I221", "I228", "I229"
-                          "I230", "I231", "I232", "I235", "I236", "I238"
-                          "I240", "I241", "I248", "I249"
-                          "I250", "I251", "I252", "I253", "I254", "I255", "I256", "I258", "I259",  # I20-25 ischemic HD
-                          "I340", "I341", "I342", "I348", "I349",
-                          "I350", "I351", "I352", "I358", "I359",
-                          "I360", "I361", "I369",
-                          "I370", "I371",
-                          "I38",
-                          "I391", "I394",                                                  # I34-39 heart valve disorder
-                          "I420", "I421", "I422", "I424", "I425", "I426", "I427", "I428", "I429"        # cardiomyopathy
-                          "I500", "I501", "I509",                                                       # heart failure
-                          ]
+        'congestive_heart_failure': ['I500'],
+        'diabetes': ["E100", "E101", "E102", "E103", "E104", "E105", "E106", "E107", "E108", "E109",    # type 1
+                     "E110", "E111", "E112", "E113", "E114", "E115", "E116", "E117", "E118", "E119",    # type 2
+                     "E131", "E133", "E135", "E136", "E138", "E139",                                   # other specified
+                     "E140", "E141", "E142", "E143", "E144", "E145", "E146", "E147", "E148", "E149",    # other unspeci.
+                     ]
+        'previous stroke' : ["I600", "I601", "I602", "I604", "I605", "I606", "I607", "I608", "I609"
+
+        ]
     }
 
     def __init__(self):
@@ -79,4 +73,4 @@ class DiabetesPredictionPlugin(PluginInterface):
 
 
 def get_plugin_class():
-    return DiabetesPredictionPlugin
+    return CHADSVAScPlugin
