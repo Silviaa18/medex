@@ -82,16 +82,16 @@ def test_save_model(folder=""):
     save_model(model, encoder, scaler, disease)
 
     # Check if the model and files are saved correctly
-    assert Path(folder + 'diabetes_prediction_model.pkl').exists()
-    assert Path(folder + 'diabetesencoder.pkl').exists()
-    assert Path(folder + 'diabetesscaler.pkl').exists()
+    assert Path(folder + 'prediction_model.pkl').exists()
+    assert Path(folder + 'encoder.pkl').exists()
+    assert Path(folder + 'scaler.pkl').exists()
 
 
 def test_load_model(folder=""):
     # Create sample model, encoder, and scaler files
-    model_path = folder + 'diabetes_prediction_model.pkl'
-    scaler_path = folder + 'diabetesscaler.pkl'
-    encoder_path = folder + 'diabetesencoder.pkl'
+    model_path = folder + 'prediction_model.pkl'
+    scaler_path = folder + 'scaler.pkl'
+    encoder_path = folder + 'encoder.pkl'
     joblib.dump('Sample Model', model_path)
     joblib.dump('Sample Scaler', scaler_path)
     joblib.dump('Sample Encoder', encoder_path)
