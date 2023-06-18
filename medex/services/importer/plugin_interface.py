@@ -36,6 +36,16 @@ class PluginInterface(ABC):
         )
 
     def icd10_match(self, query):
+        icd10_key = 'Diagnoses - ICD10'
+        icd10_join = aliased(TableCategorical, name='examination_icd10')
+        query = query.join(
+            icd10_join,
+            and_(
+                self.table.name_id == icd10_join.name_id,
+                self.table.measurement == icd10_join.measurement,
+                icd10_join.key == icd10_key
+            )
+        )
         # Add conditions to label specific ICD10 values
         for label, icd10_values in self.ICD10_LABEL_MAPPING.items():
             if isinstance(icd10_values, tuple):
@@ -43,9 +53,7 @@ class PluginInterface(ABC):
             else:
                 is_optional = True
 
-            field = (func.sum(
-                func.cast(and_(TableCategorical.key == 'Diagnoses - ICD10', TableCategorical.value.in_(icd10_values)),
-                          Integer)) > 0).label(label)
+            field = (func.sum(func.cast(and_(icd10_join.key == icd10_key, icd10_join.value.in_(icd10_values)), Integer)) > 0).label(label)
             query = query.add_columns(field)
 
             if not is_optional:
@@ -102,7 +110,7 @@ class PluginInterface(ABC):
 
         print(f'{self.DISEASE_NAME}: Added risk scores for {offset} patients')
 
-    def join_on_keys(self, query: Query, current_table, keys: list[str], is_optional: bool = False) -> Query:
+    def join_on_keys(self, query: Query, current_table, keys: list[str]) -> Query:
         for key in keys:
             alias = aliased(current_table, name='table_' + key)
             query = query.join(
@@ -112,7 +120,6 @@ class PluginInterface(ABC):
                     self.table.measurement == alias.measurement,
                     alias.key == key
                 ),
-                isouter=is_optional
             ).add_columns(
                 # Because of the group by we aggregate but since only one value will be returned it doesn't matter
                 func.max(alias.value).label(key)
