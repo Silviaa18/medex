@@ -11,18 +11,18 @@ from medex.services.importer.plugin_interface import PluginInterface
 class CHADSVAScPlugin(PluginInterface):
     PLUGIN_NAME = "CHADSVAScPlugin"
     DISEASE_NAME = "stroke"
-    NUMERICAL_KEYS = [] # ["Year of birth"]
-    CATEGORICAL_KEYS = [] # ["Sex"]
+    NUMERICAL_KEYS = ["Year of birth"]
+    CATEGORICAL_KEYS = ["Sex"]
     NEW_KEY_NAME = "CHADSVASc"
     ICD10_LABEL_MAPPING = {
-        #'hypertension': ['I10'],
-        #'congestive_heart_failure': ['I500'],
-        #'diabetes': ["E" + str(e) for e in range(100, 149)],
+        'hypertension': ['I10'],
+        'congestive_heart_failure': ['I500'],
+        'diabetes': ["E" + str(e) for e in range(100, 149)],
         ## E10 type 1 E11 type 2 E13 other specified E14 other unsp.
-        #'previous stroke/transient_ischemic_attack/Thrombus': ["I" + str(e) for e in range(600, 690)] + ["G458", "G459"]
+        'previous stroke/transient_ischemic_attack/Thrombus': ["I" + str(e) for e in range(600, 690)] + ["G458", "G459"],
         #                                                      + ["I" + str(f) for f in range(800, 809)],
-        'atrial-fibrillation': (["I" + str(e) for e in range(480, 482)], False),     # filters this
-        #'vascular_disease': ["I" + str(e) for e in range(700, 799)]
+        'atrial_fibrillation': (["I" + str(e) for e in range(480, 483)], False),     # filters this
+        'vascular_disease': ["I" + str(e) for e in range(700, 799)]
     }
 
     @staticmethod
@@ -33,11 +33,11 @@ class CHADSVAScPlugin(PluginInterface):
         score = 0
 
         for _, row in df.iterrows():
-            age = row['Year of birth']
+            age = 2008 - row['Year of birth']
             gender = row['Sex']
             hypertension = row['hypertension']
             diabetes = row['diabetes']
-            stroke_history = row['stroke_history']
+            stroke_history = row['previous stroke/transient_ischemic_attack/Thrombus']
             vascular_disease = row['vascular_disease']
             heart_failure = row['congestive_heart_failure']
 

@@ -29,6 +29,7 @@ CORS(app)
 app.secret_key = os.urandom(24)
 app.config["SQLALCHEMY_DATABASE_URI"] = get_database_url()
 app.config['SESSION_COOKIE_SAME SITE'] = 'Strict'
+app.config["SQLALCHEMY_ECHO"] = True
 db = SQLAlchemy()
 db.init_app(app)
 

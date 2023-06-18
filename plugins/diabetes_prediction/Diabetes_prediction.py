@@ -17,21 +17,11 @@ class DiabetesPredictionPlugin(PluginInterface):
     NEW_KEY_NAME = "Diabetes_prediction"
     ICD10_LABEL_MAPPING = {
         'hypertension': ['I10'],
-        'heart_disease': ["I200", "I201", "I208", "I209",
-                          "I210", "I211", "I212", "I213", "I214", "I219",
-                          "I220", "I221", "I228", "I229"
-                          "I230", "I231", "I232", "I235", "I236", "I238"
-                          "I240", "I241", "I248", "I249"
-                          "I250", "I251", "I252", "I253", "I254", "I255", "I256", "I258", "I259",  # I20-25 ischemic HD
-                          "I340", "I341", "I342", "I348", "I349",
-                          "I350", "I351", "I352", "I358", "I359",
-                          "I360", "I361", "I369",
-                          "I370", "I371",
-                          "I38",
-                          "I391", "I394",                                                  # I34-39 heart valve disorder
-                          "I420", "I421", "I422", "I424", "I425", "I426", "I427", "I428", "I429"        # cardiomyopathy
-                          "I500", "I501", "I509",                                                       # heart failure
-                          ]
+        'heart_disease': ['I'+str(e) for e in range(200, 509)]
+            # I20-25 ischemic HD
+            # I34-39 heart valve disorder
+            # I42 cardiomyopathy
+            # I50 heart failure
     }
 
     def __init__(self):

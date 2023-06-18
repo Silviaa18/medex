@@ -38,21 +38,30 @@ class PluginInterface(ABC):
     def icd10_match(self, query):
         # Add conditions to label specific ICD10 values
         for label, icd10_values in self.ICD10_LABEL_MAPPING.items():
-            query = query.add_columns((func.sum(
-                func.cast(and_(self.table.key == 'Diagnoses - ICD10', self.table.value.in_(icd10_values)),
-                          Integer)) > 0).label(label))
+            if isinstance(icd10_values, tuple):
+                icd10_values, is_optional = icd10_values
+            else:
+                is_optional = True
+
+            field = (func.sum(
+                func.cast(and_(TableCategorical.key == 'Diagnoses - ICD10', TableCategorical.value.in_(icd10_values)),
+                          Integer)) > 0).label(label)
+            query = query.add_columns(field)
+
+            if not is_optional:
+                query = query.having(field)
 
         return query
 
-    def _get_db_record_(self, row):
+    def create_prediction_row(self, index: tuple, row):
         return self.table(
-            name_id=row['name_id'],
+            name_id=index[0],
             key=self.NEW_KEY_NAME,
             value=row[self.NEW_KEY_NAME],
-            case_id=row['case_id'],  # take from input
-            measurement="",  # take from input
-            date='',  # take from input
-            time=''  # take from input
+            case_id=row['case_id'],
+            measurement=index[1],
+            date=row['date'],
+            time=''
         )
 
     def add_new_rows(self, session):
@@ -82,15 +91,7 @@ class PluginInterface(ABC):
 
             for (name_id, measurement), row in df.iterrows():
                 try:
-                    prediction_row = self.table(
-                        name_id=name_id,
-                        key=self.NEW_KEY_NAME,
-                        value=row[self.NEW_KEY_NAME],
-                        case_id=row['case_id'],  # take from input
-                        measurement=measurement,  # take from input
-                        date=row['date'],  # take from input
-                        time=''  # take from input
-                    )
+                    prediction_row = self.create_prediction_row((name_id, measurement), row)
                     session.add(prediction_row)
                 except Exception as e:
                     print(row)
@@ -101,7 +102,7 @@ class PluginInterface(ABC):
 
         print(f'{self.DISEASE_NAME}: Added risk scores for {offset} patients')
 
-    def join_on_keys(self, query: Query, current_table, keys: list[str]) -> Query:
+    def join_on_keys(self, query: Query, current_table, keys: list[str], is_optional: bool = False) -> Query:
         for key in keys:
             alias = aliased(current_table, name='table_' + key)
             query = query.join(
@@ -110,7 +111,8 @@ class PluginInterface(ABC):
                     self.table.name_id == alias.name_id,
                     self.table.measurement == alias.measurement,
                     alias.key == key
-                )
+                ),
+                isouter=is_optional
             ).add_columns(
                 # Because of the group by we aggregate but since only one value will be returned it doesn't matter
                 func.max(alias.value).label(key)
