@@ -13,15 +13,16 @@ class CHADSVAScPlugin(PluginInterface):
     DISEASE_NAME = "stroke"
     NUMERICAL_KEYS = ["Year of birth"]
     CATEGORICAL_KEYS = ["Sex"]
-    NEW_KEY_NAME = "CHADSVASc"
+    NEW_KEY_NAME = "CHADSVASc_score"
     ICD10_LABEL_MAPPING = {
         'hypertension': ['I10'],
         'congestive_heart_failure': ['I500'],
         'diabetes': ["E" + str(e) for e in range(100, 149)],
         ## E10 type 1 E11 type 2 E13 other specified E14 other unsp.
-        'previous stroke/transient_ischemic_attack/Thrombus': ["I" + str(e) for e in range(600, 690)] + ["G458", "G459"],
-        #                                                      + ["I" + str(f) for f in range(800, 809)],
-        'atrial_fibrillation': (["I" + str(e) for e in range(480, 483)], False),     # filters this
+        'previous stroke/transient_ischemic_attack/Thrombus': ["I" + str(e) for e
+                                                               in range(600, 690)] + ["G458", "G459"] +
+                                                              ["I" + str(f) for f in range(800, 810)],
+        'atrial_fibrillation': (["I" + str(e) for e in range(480, 483)], False),  # filters this
         'vascular_disease': ["I" + str(e) for e in range(700, 799)]
     }
 
@@ -30,26 +31,24 @@ class CHADSVAScPlugin(PluginInterface):
         return EntityType.NUMERICAL
 
     def calculate(self, df: pd.DataFrame) -> int:
-        score = 0
-
+        index = df.index
+        score_list = []
         for _, row in df.iterrows():
+            score = 0
             age = 2008 - row['Year of birth']
-            gender = row['Sex']
-            hypertension = row['hypertension']
-            diabetes = row['diabetes']
-            stroke_history = row['previous stroke/transient_ischemic_attack/Thrombus']
-            vascular_disease = row['vascular_disease']
-            heart_failure = row['congestive_heart_failure']
-
-            score += max(0, age - 65) // 10  # Age ≥ 65: 1 point
-            score += 1 if gender == 'female' else 0  # Female gender: 1 point
-            score += 1 if hypertension else 0  # Hypertension: 1 point
-            score += 1 if diabetes else 0  # Diabetes: 1 point
-            score += 2 if stroke_history else 0  # Stroke/TIA history: 2 points
-            score += 1 if vascular_disease else 0  # Vascular disease: 1 point
-            score += 1 if heart_failure else 0  # Heart failure: 1 point
-
-        return score
+            if age >= 75:
+                score += 2
+            elif 65 <= age >= 74:
+                score += 1
+            score += 1 if row['Sex'] == 'Female' else 0
+            score += 1 if row['hypertension'] else 0
+            score += 1 if row['diabetes'] else 0
+            score += 2 if row['previous stroke/transient_ischemic_attack/Thrombus'] else 0
+            score += 1 if row['vascular_disease'] else 0
+            score += 1 if row['congestive_heart_failure'] else 0
+            score_list.append(score)
+        series = pd.Series(score_list, index=index, name=self.NEW_KEY_NAME)
+        return series
 
 
 def get_plugin_class():

@@ -14,7 +14,7 @@ from medex.services.importer.plugin_interface import PluginInterface
 class CHDPredictionPlugin(PluginInterface):
     PLUGIN_NAME = "CHDPredictionPlugin"
     DISEASE_NAME = "CHD"
-    NUMERICAL_KEYS = ["systolic blood pressure automated reading", "Amount of tobacco currently smoked", "LDL direct",
+    NUMERICAL_KEYS = ["Systolic blood pressure automated reading", "Amount of tobacco currently smoked", "LDL direct",
                       "Year of birth", "Body mass index (BMI)"]
     CATEGORICAL_KEYS = ["Frequency of drinking alcohol"]
     NEW_KEY_NAME = "CHD_prediction"

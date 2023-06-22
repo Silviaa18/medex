@@ -44,7 +44,7 @@ class PluginInterface(ABC):
                 self.table.name_id == icd10_join.name_id,
                 self.table.measurement == icd10_join.measurement,
                 icd10_join.key == icd10_key
-            )
+            ), isouter=True
         )
         # Add conditions to label specific ICD10 values
         for label, icd10_values in self.ICD10_LABEL_MAPPING.items():
@@ -53,7 +53,7 @@ class PluginInterface(ABC):
             else:
                 is_optional = True
 
-            field = (func.sum(func.cast(and_(icd10_join.key == icd10_key, icd10_join.value.in_(icd10_values)), Integer)) > 0).label(label)
+            field = (func.sum(func.cast(func.coalesce(and_(icd10_join.key == icd10_key, icd10_join.value.in_(icd10_values)), False), Integer)) > 0).label(label)
             query = query.add_columns(field)
 
             if not is_optional:
