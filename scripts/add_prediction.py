@@ -1,12 +1,10 @@
 from flask_sqlalchemy.query import Query
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import pathlib
 import pandas as pd
 import joblib
 import numpy as np
 from medex.database_schema import TableNumerical, TableCategorical, NameType
-from typing import Optional
 from sqlalchemy.orm import aliased
 from sqlalchemy import and_, func, Integer
 from medex.services.database import init_db
@@ -22,12 +20,14 @@ POSTGRES_HOST = 'localhost'
 
 def main():
     db = get_db_session()
-    #diabetes = DiabetesPredictionPlugin(db)
-    #diabetes.on_loaded()
-    #diabetes.add_new_rows()
+    diabetes = DiabetesPredictionPlugin(db)
+    diabetes.on_loaded()
+    diabetes.add_new_rows()
     chd = CHDPredictionPlugin(db)
     chd.on_loaded()
     chd.add_new_rows()
+    chadvasc = CHADSVAScPlugin(db)
+    chadvasc.add_new_rows()
 
 
 def get_db_session():
@@ -71,23 +71,42 @@ class PluginInterface(ABC):
         )
 
     def icd10_match(self, query):
+        icd10_key = 'Diagnoses - ICD10'
+        icd10_join = aliased(TableCategorical, name='examination_icd10')
+        query = query.join(
+            icd10_join,
+            and_(
+                self.table.name_id == icd10_join.name_id,
+                self.table.measurement == icd10_join.measurement,
+                icd10_join.key == icd10_key
+            ), isouter=True
+        )
         # Add conditions to label specific ICD10 values
         for label, icd10_values in self.ICD10_LABEL_MAPPING.items():
-            query = query.add_columns((func.sum(
-                func.cast(and_(TableCategorical.key == 'Diagnoses - ICD10', TableCategorical.value.in_(icd10_values)),
-                          Integer)) > 0).label(label))
+            if isinstance(icd10_values, tuple):
+                icd10_values, is_optional = icd10_values
+            else:
+                is_optional = True
+
+            field = (func.sum(
+                func.cast(func.coalesce(and_(icd10_join.key == icd10_key, icd10_join.value.in_(icd10_values)), False),
+                          Integer)) > 0).label(label)
+            query = query.add_columns(field)
+
+            if not is_optional:
+                query = query.having(field)
 
         return query
 
-    def _get_db_record_(self, index: tuple, row):
+    def create_row(self, index: tuple, row):
         return self.table(
             name_id=index[0],
             key=self.NEW_KEY_NAME,
             value=row[self.NEW_KEY_NAME],
-            case_id=row['case_id'],  # take from input
-            measurement=index[1],  # take from input
-            date=row['date'],  # take from input
-            time=''  # take from input
+            case_id=row['case_id'],
+            measurement=index[1],
+            date=row['date'],
+            time=''
         )
 
     def add_new_rows(self):
@@ -117,15 +136,7 @@ class PluginInterface(ABC):
 
             for (name_id, measurement), row in df.iterrows():
                 try:
-                    prediction_row = self.table(
-                        name_id=name_id,
-                        key=self.NEW_KEY_NAME,
-                        value=row[self.NEW_KEY_NAME],
-                        case_id=row['case_id'],  # take from input
-                        measurement=measurement,  # take from input
-                        date=row['date'],  # take from input
-                        time=''  # take from input
-                    )
+                    prediction_row = self.create_row((name_id, measurement), row)
                     self.db_session.add(prediction_row)
                 except Exception as e:
                     print(row)
@@ -147,7 +158,6 @@ class PluginInterface(ABC):
                     alias.key == key
                 )
             ).add_columns(
-                # Because of the group by we aggregate but since only one value will be returned it doesn't matter
                 func.max(alias.value).label(key)
             )
 
@@ -182,7 +192,6 @@ class DiabetesPredictionPlugin(PluginInterface):
 
     def __init__(self, db):
         super().__init__(db)
-        # Only needed if our disease has categorical columns
         self.encoder = None
         self.model = None
         self.scaler = None
@@ -206,13 +215,10 @@ class DiabetesPredictionPlugin(PluginInterface):
             columns=self.encoder.get_feature_names_out(self.CATEGORICAL_KEYS),
             index=df.index
         )
-        # Concatenate numerical columns with one-hot encoded columns
         columns = list(df.columns)
         for col in self.CATEGORICAL_KEYS:
             columns.remove(col)
         df = pd.concat([df_onehot, df[columns]], axis=1)
-
-        # Scale numerical columns
         df = self.scaler.transform(df)
         probability_list = self.model.predict_proba(df)[:, 1]
         float_to_string = np.vectorize(lambda x: 'True' if x >= 0.5 else 'False')
@@ -231,7 +237,6 @@ class CHDPredictionPlugin(PluginInterface):
 
     def __init__(self, db):
         super().__init__(db)
-        # Only needed if our disease has categorical columns
         self.encoder = None
         self.model = None
         self.scaler = None
@@ -255,13 +260,10 @@ class CHDPredictionPlugin(PluginInterface):
             columns=self.encoder.get_feature_names_out(self.CATEGORICAL_KEYS),
             index=df.index
         )
-        # Concatenate numerical columns with one-hot encoded columns
         columns = list(df.columns)
         for col in self.CATEGORICAL_KEYS:
             columns.remove(col)
         df = pd.concat([df_onehot, df[columns]], axis=1)
-
-        # Scale numerical columns
         df = self.scaler.transform(df)
         probability_list = self.model.predict_proba(df)[:, 1]
         float_to_string = np.vectorize(lambda x: 'True' if x >= 0.5 else 'False')
@@ -270,7 +272,47 @@ class CHDPredictionPlugin(PluginInterface):
         return series
 
 
+class CHADSVAScPlugin(PluginInterface):
+    PLUGIN_NAME = "CHADSVAScPlugin"
+    DISEASE_NAME = "stroke"
+    NUMERICAL_KEYS = ["Year of birth"]
+    CATEGORICAL_KEYS = ["Sex"]
+    NEW_KEY_NAME = "CHADSVASc_score"
+    ICD10_LABEL_MAPPING = {
+        'hypertension': ['I10'],
+        'congestive_heart_failure': ['I500'],
+        'diabetes': ["E" + str(e) for e in range(100, 150)], #130
+        ## E10 type 1 E11 type 2 E13 other specified E14 other unsp.
+        'previous stroke/transient_ischemic_attack/Thrombus': ["I" + str(e) for e
+                                                               in range(600, 700)] + ["G458", "G459"] +  #630
+                                                              ["I" + str(f) for f in range(800, 810)],
+        'atrial_fibrillation': (["I" + str(e) for e in range(480, 483)] + ["I48"], False),  # filters this
+        'vascular_disease': ["I" + str(e) for e in range(700, 799)]  #710
+    }
+
+    @staticmethod
+    def entity_type() -> EntityType:
+        return EntityType.NUMERICAL
+
+    def calculate(self, df: pd.DataFrame):
+        index = df.index
+        score_list = []
+        for _, row in df.iterrows():
+            score = 0
+            age = 2008 - row['Year of birth']
+            if age >= 75:
+                score += 2
+            elif 65 <= age >= 74:
+                score += 1
+            score += 1 if row['Sex'] == 'Female' else 0
+            score += 1 if row['hypertension'] else 0
+            score += 1 if row['diabetes'] else 0
+            score += 2 if row['previous stroke/transient_ischemic_attack/Thrombus'] else 0
+            score += 1 if row['vascular_disease'] else 0
+            score += 1 if row['congestive_heart_failure'] else 0
+            score_list.append(score)
+        series = pd.Series(score_list, index=index, name=self.NEW_KEY_NAME)
+        return series
+
+
 main()
-
-
-# tar cfv script.tar scripts/add_prediction.py scripts/chd_model scripts/diabetes_model
