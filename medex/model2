@@ -1,6 +1,0 @@
-SELECT en1.name_id, en1.measurement
-FROM examination_numerical en1
-JOIN examination_numerical en2 ON en2.name_id = en1.name_id AND en2.measurement = en1.measurement
-INNER JOIN Orders ON Customers.ID = Orders.ID
-WHERE en1.key = ;
-
